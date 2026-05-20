@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2
+pydantic
+torch
+opencv-python
+redis
+speechrecognition
+pyttsx3
+opencv-python
