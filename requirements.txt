@@ -9,3 +9,5 @@ redis
 speechrecognition
 pyttsx3
 opencv-python
+gunicorn
+
