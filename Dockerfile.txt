@@ -19,10 +19,14 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Kwafi duka sauran kofofin code na folder din zuwa cikin container
 COPY . .
 
+# DABARAR SIRRI: Kirkiro tazarar karya mai suna 'app' ta hanyar symbolic link
+# Wannan zai sa kiran 'from app.core' da 'from core' duka su yi aiki lokaci guda!
+RUN ln -s /backend /backend/app
+
 # Bude kofa ta 8000 domin duniya ta iya shiga
 EXPOSE 8000
 
-# Saita PYTHONPATH domin Python ya rika duba asalin '/backend' kai tsaye
+# Saita PYTHONPATH domin Python ya rika duba asalin '/backend'
 ENV PYTHONPATH=/backend
 
 # Umarnin da zai kunna uvicorn ta hanyar kiran main:app kai tsaye
