@@ -1,7 +1,16 @@
 import os
+import sys
 import datetime
 
-# Shigar da Gemini API Key dinka a tsarin kwamfutar ta karfin tsiya kafin komai ya tashi
+# Dabarar sirri don tilasta wa Python gane cewa folder ta 'app' tana nan
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURRENT_DIR)
+if PARENT_DIR not in sys.path:
+    sys.path.insert(0, PARENT_DIR)
+if CURRENT_DIR not in sys.path:
+    sys.path.insert(0, CURRENT_DIR)
+
+# Shigar da Gemini API Key dinka a tsarin kwamfutar ta karfin tsiya
 os.environ["GEMINI_API_KEY"] = "AQ.Ab8RN6KxeAsauh85yb0vRkDWKTvp15bLeau9p5nPIM0xhMqnbQ"
 
 from fastapi import FastAPI
