@@ -22,8 +22,8 @@ COPY . .
 # Bude kofa ta 8000 domin duniya ta iya shiga
 EXPOSE 8000
 
-# Saita PYTHONPATH domin Python ya rika duba asalin '/backend' da '/backend/app'
-ENV PYTHONPATH=/backend:/backend/app
+# Saita PYTHONPATH domin Python ya rika duba asalin '/backend' kai tsaye
+ENV PYTHONPATH=/backend
 
 # Umarnin da zai kunna uvicorn ta hanyar kiran main:app kai tsaye
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
