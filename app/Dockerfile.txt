@@ -16,14 +16,16 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Kwafi duka sauran kofofin code na folder din zuwa cikin container
-COPY . .
+# Maimakon zuba komai a waje, za mu samar da folder ta 'app' a cikin container
+# mu zuba fayilolin a ciki domin 'from app.core' ta yi aiki lafiya
+RUN mkdir -p app
+COPY . ./app/
 
 # Bude kofa ta 8000 domin duniya ta iya shiga
 EXPOSE 8000
 
-# Saita PYTHONPATH domin Python ya gane cewa 'app' folda ce dake ciki
+# Saita PYTHONPATH domin Python ya rika duba asalin '/backend'
 ENV PYTHONPATH=/backend
 
-# Umarnin da zai tura uvicorn wuta ta hanyar Python module don kauce wa matsalar ModuleNotFound
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Umarnin da zai kunna uvicorn ta hanyar kiran 'app.main:app'
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
