@@ -1,0 +1,26 @@
+# Yi amfani da ingantaccen hoton Python mai sauki
+FROM python:3.11-slim
+
+# Saita gurbin aiki a cikin container
+WORKDIR /backend
+
+# Sanya kayan aikin Windows/Linux da ake bukata don ginin libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Kwafi fayil din requirements da farko don yin caching na libraries
+COPY requirements.txt .
+
+# Shigar da duka libraries da application din ke bukata
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Kwafi duka sauran kofofin code na folder din zuwa cikin container
+COPY . .
+
+# Bude kofa ta 8000 domin duniya ta iya shiga
+EXPOSE 8000
+
+# Umarnin da zai tura uvicorn wuta a tsarin production (babu --reload don gudun nauyi)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+google-genai
+motor
+asyncpg
+sqlalchemy
+redis
+pyjwt
+passlib[bcrypt]
+bcrypt
+watchfiles
