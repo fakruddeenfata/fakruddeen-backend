@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Saita gurbin aiki a cikin container
 WORKDIR /backend
 
-# Sanya kayan aikin Windows/Linux da ake bukata don ginin libraries
+# Sanya kayan aikin Linux da ake bukata don ginin libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -22,5 +22,8 @@ COPY . .
 # Bude kofa ta 8000 domin duniya ta iya shiga
 EXPOSE 8000
 
-# Umarnin da zai tura uvicorn wuta a tsarin production (babu --reload don gudun nauyi)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Saita PYTHONPATH domin Python ya gane cewa 'app' folda ce dake ciki
+ENV PYTHONPATH=/backend
+
+# Umarnin da zai tura uvicorn wuta ta hanyar Python module don kauce wa matsalar ModuleNotFound
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
