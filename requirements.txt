@@ -9,3 +9,4 @@ pyjwt
 passlib[bcrypt]
 bcrypt
 watchfiles
+email-validator>=2.0.0
