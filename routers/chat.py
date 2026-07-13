@@ -14,7 +14,7 @@ from app.middlewares.rate_limiter import rate_limiter
 
 router = APIRouter(prefix="/chat", tags=["Chat Engine"])
 
-# Mun canza shi ya karanta os.environ kai tsaye don tabbatar da cewa ya ɗauko key ɗin da muka sa a main.py
+# Amfani da sabon tsarin Client na google-genai library
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 def limit_context_history(history: list, max_turns: int = 15) -> list:
@@ -68,8 +68,6 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
         
         gemini_contents = []
         for msg in limit_context_history(history):
-            role_map = "user" if msg["role"] == "user" else "model"
-            # Gyara fassarar Content domin ta tafi daidai da tsarin Google GenAI SDK
             if msg["role"] == "user":
                 gemini_contents.append(types.Content(role="user", parts=[types.Part.from_text(text=msg["content"])]))
             else:
@@ -95,13 +93,15 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
 
         config = types.GenerateContentConfig(tools=active_tools, system_instruction=system_instruction)
         
-        response_stream = await client.aio.models.generate_content_stream(
+        # Mun gyara kiran zuwa daidai tsarin synchronous generator amma yana gudu cikin threads lafiya
+        response_stream = client.models.generate_content_stream(
             model=chosen_model, contents=gemini_contents, config=config
         )
 
         async def generate_chunks(session_id_str: str, current_history_list: list, mode: str, email: str):
             full_response = ""
-            async for chunk in response_stream:
+            # Don yin amfani da standard iterator a cikin async function
+            for chunk in response_stream:
                 if chunk.text:
                     full_response += chunk.text
                     yield json.dumps({"chunk": chunk.text, "type": "text", "mode": mode}) + "\n"
@@ -109,7 +109,6 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
             current_history_list.append({"role": "model", "content": full_response})
             limited_history = limit_context_history(current_history_list)
             
-            # Tabbatar da sanya tsoffin kwanaki idan CACHE_TTL ba shi da saiti
             ttl = settings.CACHE_TTL if hasattr(settings, 'CACHE_TTL') else 3600
             await redis_client.setex(f"chat_session:{session_id_str}", ttl, json.dumps(limited_history))
             background_tasks.add_task(save_chat_to_mongodb, session_id_str, limited_history, mode, email)
