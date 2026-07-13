@@ -4,6 +4,7 @@ import datetime
 import os
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel  # Mun dawo da shi nan sama dindindin
 from google import genai
 from google.genai import types
 from app.core.config import settings
@@ -47,8 +48,6 @@ async def save_chat_to_mongodb(session_id_str: str, history_list: list, mode: st
 class ImageRequest(BaseModel):
     prompt: str
 
-from pydantic import BaseModel
-
 @router.post("/generate-image", dependencies=[Depends(rate_limiter)])
 async def generate_image_endpoint(req: ImageRequest, current_user: dict = Depends(get_current_user)):
     try:
@@ -59,7 +58,7 @@ async def generate_image_endpoint(req: ImageRequest, current_user: dict = Depend
             config=types.GenerateImagesConfig(
                 number_of_images=1,
                 output_mime_type="image/jpeg",
-                aspect_ratio="1:1",  # Ko a saka "16:9" idan na fina-finai ake so
+                aspect_ratio="1:1",  
                 person_generation="ALLOW_ADULT"
             )
         )
