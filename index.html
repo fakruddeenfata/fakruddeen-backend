@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fata AI Ultra - Enterprise Dashboard</title>
-    <!-- Tailwind CSS for Next-Gen Styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Pro Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     
     <style>
@@ -38,10 +35,8 @@
 </head>
 <body class="bg-[#0b0f19] text-slate-100 h-screen flex overflow-hidden">
 
-    <!-- 1. PREMIUM SIDEBAR (Left Panel) -->
     <aside class="w-72 bg-[#070a13] flex flex-col justify-between hidden lg:flex border-r border-slate-900/80 z-20">
         <div class="p-4 flex flex-col flex-1 overflow-hidden">
-            <!-- Sidebar Header / Logo area -->
             <div class="flex items-center gap-3 px-2 mb-6">
                 <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-900/30">
                     F
@@ -52,25 +47,21 @@
                 </div>
             </div>
 
-            <!-- New Chat CTA Button -->
             <button onclick="createNewSession()" class="glow-button w-full border border-slate-800/80 bg-[#0d1324] hover:bg-[#131b32] text-slate-200 hover:text-white rounded-xl p-3 text-sm flex items-center justify-center gap-3 font-semibold transition group">
                 <i class="fa-solid fa-square-plus text-blue-500 group-hover:text-blue-400 transition text-base"></i>
                 Start New Session
             </button>
             
-            <!-- Dynamic Chat Session History Container -->
             <div class="mt-8 flex-1 flex flex-col overflow-hidden">
                 <div class="flex justify-between items-center px-2 mb-3">
                     <p class="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest">Recent Contexts</p>
                     <i class="fa-solid fa-clock-rotate-left text-xs text-slate-600"></i>
                 </div>
                 <div id="session-list" class="flex-1 space-y-1.5 custom-scrollbar overflow-y-auto pr-1">
-                    <!-- Dynamic injection via JS -->
-                </div>
+                    </div>
             </div>
         </div>
         
-        <!-- Sidebar Bottom Footer / User Node -->
         <div class="p-4 border-t border-slate-900 bg-[#05070d]">
             <div class="flex items-center justify-between bg-[#0d1324] border border-slate-800/50 p-3 rounded-xl">
                 <div class="flex items-center gap-3 overflow-hidden">
@@ -89,10 +80,8 @@
         </div>
     </aside>
 
-    <!-- 2. MAIN APPLICATION SPACE (Right Workspace) -->
     <div class="flex-1 flex flex-col justify-between bg-[#0f1424] relative overflow-hidden">
         
-        <!-- ULTRA MODERN NAVIGATION BAR -->
         <nav class="w-full h-16 bg-[#090d1a]/90 backdrop-blur-md border-b border-slate-900/80 px-6 flex justify-between items-center z-10 shadow-sm">
             <div class="flex items-center gap-4">
                 <button class="lg:hidden text-slate-400 hover:text-white transition text-lg">
@@ -104,7 +93,6 @@
                 </div>
             </div>
             
-            <!-- Context Control Center (Switch Modes smoothly) -->
             <div class="flex bg-[#05070d] p-1 rounded-xl border border-slate-800/60 shadow-inner">
                 <button onclick="setChatMode('standard')" id="btn-standard" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-md transition duration-200">
                     <i class="fa-solid fa-bolt mr-1.5"></i>Standard
@@ -117,17 +105,14 @@
                 </button>
             </div>
 
-            <!-- Right Nav Badges -->
             <div class="hidden sm:flex items-center gap-3">
                 <div class="text-xs bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-400 font-medium">
-                    <span class="text-blue-400 font-bold">Model:</span> Gemini 2.5 Pro Engine
+                    <span class="text-blue-400 font-bold">Model:</span> Gemini 2.5 Flash Engine
                 </div>
             </div>
         </nav>
 
-        <!-- STREAM DIALOGUE MONITOR (Chat History Layout) -->
         <main id="chat-window" class="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar space-y-6 max-w-4xl w-full mx-auto pb-40">
-            <!-- Global AI Greeting Card -->
             <div class="flex gap-4 max-w-3xl animate-fade-in">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-md flex-shrink-0">
                     FA
@@ -135,25 +120,15 @@
                 <div class="bg-[#131a30] border border-slate-800/80 p-5 rounded-2xl rounded-tl-none leading-relaxed text-slate-200 shadow-xl shadow-black/5">
                     <h3 class="font-bold text-base text-white mb-1">System Initiated Successfully</h3>
                     <p class="text-sm text-slate-300">
-                        Welcome to **Fata AI Ultra Core Engine**. Powered by Google Gemini & Imagen 3 models. I can execute advanced context parsing, code execution, real-time web grounding, and hyper-realistic asset synthesis.
+                        Welcome to **Fata AI Ultra Core Engine**. Powered by Google Gemini. I can execute advanced context parsing, code execution, and fast real-time responses.
                     </p>
-                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        <div class="p-3 bg-[#090d1a] border border-slate-800/50 rounded-xl text-slate-400">
-                            <span class="text-blue-400 font-semibold block mb-1">Deep Intelligence</span> "Analyze this dataset for logical patterns"
-                        </div>
-                        <div class="p-3 bg-[#090d1a] border border-slate-800/50 rounded-xl text-slate-400">
-                            <span class="text-purple-400 font-semibold block mb-1">Asset Generation</span> "Generate a futuristic neon hypercar in 4k"
-                        </div>
-                    </div>
                 </div>
             </div>
         </main>
 
-        <!-- HIGH-DENSITY FLOATING INPUT DOCK (Bottom Area) -->
         <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-[#0f1424] via-[#0f1424]/95 to-transparent pt-12 pb-6 px-4 z-10">
             <div class="max-w-3xl mx-auto bg-[#070a13] border border-slate-800/90 rounded-2xl shadow-2xl p-2.5 flex flex-col gap-2 focus-within:border-blue-600/60 focus-within:ring-1 focus-within:ring-blue-600/40 transition duration-300">
                 
-                <!-- Floating Attachment State Notification -->
                 <div id="file-badge-area" class="flex flex-wrap gap-2 px-2 hidden">
                     <div class="bg-blue-950/80 border border-blue-800/60 px-3 py-1 rounded-lg flex items-center gap-2 text-xs text-blue-300">
                         <i class="fa-solid fa-file-invoice text-blue-400"></i>
@@ -162,13 +137,10 @@
                     </div>
                 </div>
 
-                <!-- Main Context Input -->
-                <textarea id="user-input" rows="1" placeholder="Type a message or type 'generate' to craft imagery..." class="w-full bg-transparent resize-none outline-none text-slate-100 placeholder-slate-600 text-sm py-2 px-3 max-h-36 custom-scrollbar" onkeydown="handleKeyPress(event)"></textarea>
+                <textarea id="user-input" rows="1" placeholder="Type a message to Fata AI..." class="w-full bg-transparent resize-none outline-none text-slate-100 placeholder-slate-600 text-sm py-2 px-3 max-h-36 custom-scrollbar" onkeydown="handleKeyPress(event)"></textarea>
                 
-                <!-- Input Interactivity Bar -->
                 <div class="flex justify-between items-center border-t border-slate-900 pt-2 px-1">
                     <div class="flex items-center gap-1.5">
-                        <!-- Media Asset Payload Triggers -->
                         <label class="w-8 h-8 rounded-lg hover:bg-slate-900 flex items-center justify-center text-slate-500 hover:text-slate-300 cursor-pointer transition">
                             <i class="fa-solid fa-paperclip text-sm"></i>
                             <input type="file" id="file-input" class="hidden" onchange="processFilePayload(event)">
@@ -177,7 +149,6 @@
                         <span id="status-ticker" class="text-[10px] text-slate-600 font-semibold tracking-wide uppercase">Engine Idle</span>
                     </div>
                     
-                    <!-- Execution Trigger -->
                     <button onclick="executePipeline()" class="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-5 py-2 text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-blue-900/20 glow-button">
                         <span>Send</span>
                         <i class="fa-solid fa-paper-plane text-[10px]"></i>
@@ -187,39 +158,19 @@
         </div>
     </div>
 
-    <!-- 3. ADVANCED GLOBAL EXECUTION SCRIPT (JavaScript Core Engine) -->
     <script>
-        // High-Scale Render Network Gateways
         const BACKEND_URL = "https://fata-ai-backend.onrender.com";
         
         let currentSessionId = "session_" + Date.now();
         let currentChatMode = "standard";
-        let userToken = ""; 
+        let userToken = "guest_active"; 
         let selectedFileBase64 = null;
         let selectedFileMime = null;
 
-        // Auto Authenticate Client Pipeline on Node Initialization
-        async function runAuthenticationProtocol() {
-            setTickerStatus("Authenticating");
-            try {
-                const response = await fetch(`${BACKEND_URL}/auth/guest`, { method: "POST" });
-                const data = await response.json();
-                userToken = data.access_token;
-                document.getElementById("user-display-email").innerText = data.email;
-                setTickerStatus("Connected");
-                console.log("Secure token sequence successfully loaded into instance memory.");
-            } catch (err) {
-                setTickerStatus("Auth Failure");
-                console.error("Infrastructure Gateway Error: ", err);
-            }
-        }
-
-        // Handle Status Indicator Updates
         function setTickerStatus(statusText) {
             document.getElementById("status-ticker").innerText = statusText;
         }
 
-        // Toggle Application Modes dynamically
         function setChatMode(mode) {
             currentChatMode = mode;
             ["standard", "notebook", "voice"].forEach(m => {
@@ -232,14 +183,11 @@
             });
         }
 
-        // Convert Media Attachments to valid Base64 String format
         function processFilePayload(event) {
             const payload = event.target.files[0];
             if (!payload) return;
-            
             selectedFileMime = payload.type;
             document.getElementById("file-name-span").innerText = payload.name;
-            
             const reader = new FileReader();
             reader.onload = function(e) {
                 selectedFileBase64 = e.target.result;
@@ -248,7 +196,6 @@
             reader.readAsDataURL(payload);
         }
 
-        // Discard Uploaded Media Attachment
         function clearAttachment() {
             selectedFileBase64 = null;
             selectedFileMime = null;
@@ -256,20 +203,18 @@
             document.getElementById("file-badge-area").classList.add("hidden");
         }
 
-        // Clear Workspace Matrix and Instantiate Fresh Session ID
         function createNewSession() {
             currentSessionId = "session_" + Date.now();
             document.getElementById("chat-window").innerHTML = `
                 <div class="flex gap-4 max-w-3xl animate-fade-in">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-md">FA</div>
                     <div class="bg-[#131a30] border border-slate-800/80 p-5 rounded-2xl rounded-tl-none text-sm text-slate-200 shadow-xl">
-                        New isolated context layer compiled. Proceed to issue prompts or data packages.
+                        New isolated context layer compiled. Proceed to issue prompts.
                     </div>
                 </div>`;
             syncSessionHistoryLog();
         }
 
-        // Append Active Contexts to Sidebar Listing Panel
         function syncSessionHistoryLog() {
             const listRef = document.getElementById("session-list");
             const node = document.createElement("div");
@@ -278,7 +223,6 @@
             listRef.prepend(node);
         }
 
-        // Hotkey trigger integration (Ctrl + Enter fallback or basic Enter)
         function handleKeyPress(event) {
             if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
@@ -286,39 +230,29 @@
             }
         }
 
-        // MAIN FLOW CONTROLLER PIPELINE (TRANSMISSION & STREAM READ)
+        // CORRECTED PIPELINE ENTRY POINT WITH ALIGNED ROUTE
         async function executePipeline() {
             const fieldRef = document.getElementById("user-input");
             const rawPrompt = fieldRef.value.trim();
+            if (!rawPrompt) return;
             
-            if (!rawPrompt && !selectedFileBase64) return;
-            
-            fieldRef.value = ""; // Flush memory buffer in UI
+            fieldRef.value = ""; 
             const windowRef = document.getElementById("chat-window");
 
-            // Build User Payload Node in UI
             let userNodeHtml = `
                 <div class="flex gap-4 max-w-3xl ml-auto flex-row-reverse animate-fade-in">
                     <div class="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-sm font-black text-blue-400">User</div>
-                    <div class="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none text-sm font-medium shadow-md">
-                        ${rawPrompt || "[Transmitted Binary Attachment Content]"}
-                    </div>
+                    <div class="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none text-sm font-medium shadow-md">${rawPrompt}</div>
                 </div>`;
             windowRef.innerHTML += userNodeHtml;
             windowRef.scrollTop = windowRef.scrollHeight;
-
-            // Determine route based on semantic query classification
-            const isImageGenerationRequest = rawPrompt.toLowerCase().includes("generate") || 
-                                              rawPrompt.toLowerCase().includes("create image") || 
-                                              rawPrompt.toLowerCase().includes("hoto") ||
-                                              rawPrompt.toLowerCase().includes("kera");
 
             const aiNodeId = "ai_node_" + Date.now();
             let aiPlaceholderHtml = `
                 <div class="flex gap-4 max-w-3xl animate-fade-in">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-md flex-shrink-0">FA</div>
                     <div id="${aiNodeId}" class="bg-[#131a30] border border-slate-800/80 p-5 rounded-2xl rounded-tl-none text-sm leading-relaxed text-slate-300 shadow-xl">
-                        <i class="fa-solid fa-compass-drafting animate-spin text-blue-500 mr-2"></i> Parsing context layers...
+                        <i class="fa-solid fa-compass-drafting animate-spin text-blue-500 mr-2"></i> Analyzing workspace...
                     </div>
                 </div>`;
             windowRef.innerHTML += aiPlaceholderHtml;
@@ -326,61 +260,17 @@
 
             const targetBox = document.getElementById(aiNodeId);
 
-            // ========================================================
-            // ROUTE ALPHA: IMAGEN 3 ASSET COMPILATION ROUTINE
-            // ========================================================
-            if (isImageGenerationRequest) {
-                setTickerStatus("Synthesizing");
-                try {
-                    const response = await fetch(`${BACKEND_URL}/chat/generate-image`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${userToken}`
-                        },
-                        body: JSON.stringify({
-                            prompt: rawPrompt,
-                            session_id: currentSessionId
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.status === "success") {
-                        setTickerStatus("Idle");
-                        targetBox.innerHTML = `
-                            <p class="mb-3 text-green-400 font-semibold text-xs flex items-center gap-1.5"><i class="fa-solid fa-square-check"></i> Asset generated successfully via Imagen 3 Architecture:</p>
-                            <img src="${data.image_data}" alt="Fata AI Asset" class="rounded-xl max-w-full h-auto shadow-2xl border border-slate-800 mt-1 hover:scale-[1.01] transition duration-300">`;
-                    } else {
-                        targetBox.innerText = "Execution Failure: The cluster failed to compile image matrix data.";
-                        setTickerStatus("Error");
-                    }
-                } catch (err) {
-                    targetBox.innerText = "Fatal Core Exception: Could not reach backend asset compilation router.";
-                    setTickerStatus("Error");
-                }
-                return;
-            }
-
-            // ========================================================
-            // ROUTE BETA: LIVE ASYNC CHUNK-STREAM READING ROUTINE
-            // ========================================================
             try {
                 setTickerStatus("Streaming");
-                const response = await fetch(`${BACKEND_URL}/chat`, {
+                // ALIGNED ENDPOINT ROUTE INTERACTION
+                const response = await fetch(`${BACKEND_URL}/api/v2/chat/stream`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${userToken}`
-                    },
-                    body: JSON.stringify({
-                        message: rawPrompt,
-                        session_id: currentSessionId,
-                        file_base64: selectedFileBase64,
-                        mime_type: selectedFileMime,
-                        chat_mode: currentChatMode
-                    })
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: rawPrompt })
                 });
 
-                // Clear temporary binary storage pointers safely
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
                 clearAttachment();
                 targetBox.innerHTML = ""; 
 
@@ -402,12 +292,15 @@
                                 const JSON_Payload = JSON.parse(trimmedLine);
                                 if (JSON_Payload.chunk) {
                                     cumulativeContextString += JSON_Payload.chunk;
-                                    // Process inline line breaks flawlessly safely
                                     targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>");
                                     windowRef.scrollTop = windowRef.scrollHeight;
                                 }
-                            } catch (internalJSONError) {
-                                // Chunk fragments merge seamlessly in trailing buffer loops
+                            } catch (e) {
+                                // Fallback for raw plaintext injection loops
+                                if (!trimmedLine.startsWith("{")) {
+                                    cumulativeContextString += trimmedLine;
+                                    targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>");
+                                }
                             }
                         }
                     }
@@ -415,14 +308,14 @@
                 setTickerStatus("Idle");
 
             } catch (err) {
-                targetBox.innerText = "Fatal Connection Outage: Fata AI core engine failed to establish valid context responses. Verify deployment configuration variables.";
+                targetBox.innerText = `Outage Notice: Could not stream from backend. Reference: ${err.message}`;
                 setTickerStatus("Error");
             }
         }
 
-        // Initialize Node Lifecycle Operations on load
         window.onload = () => {
-            runAuthenticationProtocol();
+            document.getElementById("user-display-email").innerText = "guest_cluster_active";
+            setTickerStatus("Idle");
             syncSessionHistoryLog();
         };
     </script>

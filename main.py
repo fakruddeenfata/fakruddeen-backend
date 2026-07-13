@@ -4,10 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from google import genai
-from core.config import settings
-from routers import auth, chat  
+import json
 
-# An cire bayyanannen API key don tsaro, yanzu zai dauko ta hanyar system environment dindindin
+# Initialize GenAI Client - automatically picks up GEMINI_API_KEY from environment
 client = genai.Client()
 
 app = FastAPI(
@@ -16,16 +15,14 @@ app = FastAPI(
     description="Fata AI World Class Ultra-Scale Core Engine - Streaming Enabled"
 )
 
+# Robust Cross-Origin Pipeline (Fixed for seamless streaming)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
-    allow_credentials=True,
+    allow_credentials=False, # Crucial: Must be False when allow_origins is ["*"] to prevent browser block
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(auth.router)
-app.include_router(chat.router)
 
 class ChatRequest(BaseModel):
     prompt: str
@@ -39,7 +36,9 @@ async def stream_chat(request: ChatRequest):
         )
         for chunk in response:
             if chunk.text:
-                yield chunk.text
+                # Pack text securely inside a JSON line format matching the frontend layout
+                payload = json.dumps({"chunk": chunk.text})
+                yield f"{payload}\n"
 
     return StreamingResponse(generate_ai_response(), media_type="text/event-stream")
 
