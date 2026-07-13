@@ -41,6 +41,47 @@ async def save_chat_to_mongodb(session_id_str: str, history_list: list, mode: st
     except Exception:
         pass
 
+# ---------------------------------------------------------
+# SABUWAR ƘOFA: KERA HOTO TA AMFANI DA IMAGEN 3
+# ---------------------------------------------------------
+class ImageRequest(BaseModel):
+    prompt: str
+
+from pydantic import BaseModel
+
+@router.post("/generate-image", dependencies=[Depends(rate_limiter)])
+async def generate_image_endpoint(req: ImageRequest, current_user: dict = Depends(get_current_user)):
+    try:
+        # Kira babban injin kera hoto na Google Imagen 3
+        result = client.models.generate_images(
+            model='imagen-3.0-generate-002',
+            prompt=req.prompt,
+            config=types.GenerateImagesConfig(
+                number_of_images=1,
+                output_mime_type="image/jpeg",
+                aspect_ratio="1:1",  # Ko a saka "16:9" idan na fina-finai ake so
+                person_generation="ALLOW_ADULT"
+            )
+        )
+        
+        # Dauko hoton da aka kera a mayar da shi zuwa Base64 string don Frontend
+        for generated_image in result.generated_images:
+            base64_image = base64.b64encode(generated_image.image.image_bytes).decode("utf-8")
+            return {
+                "status": "success",
+                "prompt": req.prompt,
+                "mime_type": "image/jpeg",
+                "image_data": f"data:image/jpeg;base64,{base64_image}"
+            }
+            
+        raise HTTPException(status_code=400, detail="Injin ya kasa kera hoton nan.")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------------------------------------------------------
+# ASALIN ƘOFA TA HIRA (STREAMING CHAT WITH SEARCH & MEMORY)
+# ---------------------------------------------------------
 @router.post("", dependencies=[Depends(rate_limiter)])
 async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     try:
@@ -93,14 +134,12 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
 
         config = types.GenerateContentConfig(tools=active_tools, system_instruction=system_instruction)
         
-        # Mun gyara kiran zuwa daidai tsarin synchronous generator amma yana gudu cikin threads lafiya
         response_stream = client.models.generate_content_stream(
             model=chosen_model, contents=gemini_contents, config=config
         )
 
         async def generate_chunks(session_id_str: str, current_history_list: list, mode: str, email: str):
             full_response = ""
-            # Don yin amfani da standard iterator a cikin async function
             for chunk in response_stream:
                 if chunk.text:
                     full_response += chunk.text
