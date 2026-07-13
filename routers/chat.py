@@ -4,7 +4,7 @@ import datetime
 import os
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel  # Mun dawo da shi nan sama dindindin
+from pydantic import BaseModel  # Mun tabbatar yana sama tsaf dindindin
 from google import genai
 from google.genai import types
 from app.core.config import settings
@@ -26,6 +26,9 @@ def limit_context_history(history: list, max_turns: int = 15) -> list:
 async def save_chat_to_mongodb(session_id_str: str, history_list: list, mode: str, user_email: str):
     try:
         title = "Notebook Chat" if mode == "notebook" else "Voice Chat" if mode == "voice" else "Standard Chat"
+        if mode == "image_generation":
+            title = "Image Generation Chat"
+            
         await chat_collection.update_one(
             {"_id": session_id_str},
             {
@@ -43,15 +46,18 @@ async def save_chat_to_mongodb(session_id_str: str, history_list: list, mode: st
         pass
 
 # ---------------------------------------------------------
-# SABUWAR ƘOFA: KERA HOTO TA AMFANI DA IMAGEN 3
+# INJING KERA HOTO: TARE DA ADANA SHI A MONGODB HISTORY
 # ---------------------------------------------------------
 class ImageRequest(BaseModel):
     prompt: str
+    session_id: str  # Mun kara session_id anan don adana tarihin hoton!
 
 @router.post("/generate-image", dependencies=[Depends(rate_limiter)])
-async def generate_image_endpoint(req: ImageRequest, current_user: dict = Depends(get_current_user)):
+async def generate_image_endpoint(req: ImageRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     try:
-        # Kira babban injin kera hoto na Google Imagen 3
+        user_email = current_user["sub"]
+        
+        # 1. Kira babban injin kera hoto na Google Imagen 3
         result = client.models.generate_images(
             model='imagen-3.0-generate-002',
             prompt=req.prompt,
@@ -63,14 +69,26 @@ async def generate_image_endpoint(req: ImageRequest, current_user: dict = Depend
             )
         )
         
-        # Dauko hoton da aka kera a mayar da shi zuwa Base64 string don Frontend
         for generated_image in result.generated_images:
             base64_image = base64.b64encode(generated_image.image.image_bytes).decode("utf-8")
+            full_image_uri = f"data:image/jpeg;base64,{base64_image}"
+            
+            # 2. Dauko tsofaffin hirarakin wannan session din daga MongoDB don mu saka hoton a ciki
+            existing_chat = await chat_collection.find_one({"_id": req.session_id})
+            history = existing_chat.get("messages", []) if existing_chat else []
+            
+            # Sanya prompt din user da hoton da aka kera a tarihin hira
+            history.append({"role": "user", "content": f"Kera mini hoton: {req.prompt}"})
+            history.append({"role": "model", "content": f"[Generated Image]", "image_url": full_image_uri})
+            
+            # 3. Turawa Background Task ta adana a MongoDB ba tare da jinkirta amsar user ba
+            background_tasks.add_task(save_chat_to_mongodb, req.session_id, history, "image_generation", user_email)
+            
             return {
                 "status": "success",
                 "prompt": req.prompt,
                 "mime_type": "image/jpeg",
-                "image_data": f"data:image/jpeg;base64,{base64_image}"
+                "image_data": full_image_uri
             }
             
         raise HTTPException(status_code=400, detail="Injin ya kasa kera hoton nan.")
@@ -108,10 +126,12 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
         
         gemini_contents = []
         for msg in limit_context_history(history):
-            if msg["role"] == "user":
-                gemini_contents.append(types.Content(role="user", parts=[types.Part.from_text(text=msg["content"])]))
-            else:
-                gemini_contents.append(types.Content(role="model", parts=[types.Part.from_text(text=msg["content"])]))
+            # Tace sakonni don kada bayanan hoto (image_url) su jefa Gemini a kuskure
+            if "content" in msg:
+                if msg["role"] == "user":
+                    gemini_contents.append(types.Content(role="user", parts=[types.Part.from_text(text=msg["content"])]))
+                else:
+                    gemini_contents.append(types.Content(role="model", parts=[types.Part.from_text(text=msg["content"])]))
 
         if clean_base64 and gemini_contents and gemini_contents[-1].role == "user":
             file_part = types.Part.from_bytes(data=base64.b64decode(clean_base64), mime_type=req.mime_type)
