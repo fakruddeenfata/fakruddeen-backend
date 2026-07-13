@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from google import genai
 import json
 
-# Initialize GenAI Client - yana ɗaukar GEMINI_API_KEY ta atomatik daga Render environment
+# Initialize GenAI Client
 client = genai.Client()
 
 app = FastAPI(
@@ -15,11 +15,11 @@ app = FastAPI(
     description="Fata AI World Class Ultra-Scale Core Engine - Streaming Enabled"
 )
 
-# Robust Cross-Origin Pipeline (An gyara don streaming ya yi aiki ba tare da matsalar CORS ba)
+# Robust Cross-Origin Pipeline (Fixed for seamless streaming)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
-    allow_credentials=False, # Dole ne ya zama False tunda an yi amfani da ["*"]
+    allow_credentials=False, 
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -30,23 +30,23 @@ class ChatRequest(BaseModel):
 @app.post("/api/v2/chat/stream", tags=["Fata AI Core"])
 async def stream_chat(request: ChatRequest):
     
-    # An canza zuwa async generator don FastAPI ya iya streaming ba tare da block ba
+    # Mun canza zuwa async generator mai amfani da client.aio
     async def generate_ai_response():
         try:
-            # Kiran sabon Google GenAI SDK don fitar da bayanan jere-jere
-            response = client.models.generate_content_stream(
+            # Amfani da client.aio.models yana tabbatar da async pipeline ya ga API key daidai
+            response = await client.aio.models.generate_content_stream(
                 model='gemini-2.5-flash',
                 contents=request.prompt,
             )
             
-            for chunk in response:
-                # Tabbatar cewa chunk ɗin yana da rubutu kafin a tura shi
+            async for chunk in response:
                 if chunk.text:
                     payload = json.dumps({"chunk": chunk.text})
                     yield f"{payload}\n"
+                    
         except Exception as e:
-            # Idan an sami matsala wajen kiran Gemini API, a tura kuskuren zuwa frontend
-            error_payload = json.dumps({"chunk": f"Error: {str(e)}"})
+            # Idan an sami kuskure (kamar 401), zai tura muku bayani ta JSON
+            error_payload = json.dumps({"chunk": f"Backend Connection Error: {str(e)}"})
             yield f"{error_payload}\n"
 
     return StreamingResponse(generate_ai_response(), media_type="text/event-stream")
