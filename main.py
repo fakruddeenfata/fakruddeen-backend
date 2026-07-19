@@ -36,7 +36,8 @@ async def stream_chat(request: ChatRequest):
     
     async def generate_ai_response():
         try:
-            # AN GYARA: Mun mayar da shi zuwa gemini-2.5-flash domin dacewa da sabon API Key na v1beta
+            # AN GYARA WURIN MODEL DA KYAU: An sauya zuwa 'gemini-2.5-flash' ko 'gemini-2.0-flash'
+            # Domin sabon SDK na Google (google-genai) ya fi gane wannan ga sabbin API keys
             response = await client.aio.models.generate_content_stream(
                 model='gemini-2.5-flash',
                 contents=request.prompt,
