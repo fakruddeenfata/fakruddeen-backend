@@ -36,10 +36,11 @@ async def stream_chat(request: ChatRequest):
     
     async def generate_ai_response():
         try:
-            # AN GYARA YANZU: An dawo da sunan model din zuwa 'gemini-2.5-flash-latest' 
-            # Wannan shi ne zai wuce da sabon API Key dinka ba tare da 404 Error ba
+            # AN GYARA MATSALAR MODEL GABADA'YA:
+            # An sauya sunan model din zuwa 'gemini-2.5-flash' ko 'gemini-1.5-flash' 
+            # wanda ke da izini a kowane sabon asusu na Google AI Studio.
             response = await client.aio.models.generate_content_stream(
-                model='gemini-2.5-flash-latest',
+                model='gemini-2.5-flash',
                 contents=request.prompt,
             )
             
