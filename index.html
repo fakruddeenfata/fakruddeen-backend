@@ -107,7 +107,7 @@
 
             <div class="hidden sm:flex items-center gap-3">
                 <div class="text-xs bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-400 font-medium">
-                    <span class="text-blue-400 font-bold">Model:</span> Gemini 2.5 Flash Engine
+                    <span class="text-blue-400 font-bold">Model:</span> <span id="model-tag-display">Gemini 1.5 Flash Engine</span>
                 </div>
             </div>
         </nav>
@@ -163,7 +163,7 @@
         
         let currentSessionId = "session_" + Date.now();
         let currentChatMode = "standard";
-        let userToken = "guest_active"; 
+        
         let selectedFileBase64 = null;
         let selectedFileMime = null;
 
@@ -173,6 +173,14 @@
 
         function setChatMode(mode) {
             currentChatMode = mode;
+            const modelTag = document.getElementById("model-tag-display");
+            
+            if(mode === "notebook") {
+                modelTag.innerText = "Gemini 1.5 Pro Engine";
+            } else {
+                modelTag.innerText = "Gemini 1.5 Flash Engine";
+            }
+
             ["standard", "notebook", "voice"].forEach(m => {
                 const element = document.getElementById(`btn-${m}`);
                 if (m === mode) {
@@ -190,7 +198,8 @@
             document.getElementById("file-name-span").innerText = payload.name;
             const reader = new FileReader();
             reader.onload = function(e) {
-                selectedFileBase64 = e.target.result;
+                // Raba data URL din don dauko ainihin base64 string kadai idan kana bukata
+                selectedFileBase64 = e.target.result.split(',')[1] || e.target.result;
                 document.getElementById("file-badge-area").classList.remove("hidden");
             };
             reader.readAsDataURL(payload);
@@ -233,17 +242,19 @@
         async function executePipeline() {
             const fieldRef = document.getElementById("user-input");
             const rawPrompt = fieldRef.value.trim();
-            if (!rawPrompt) return;
+            if (!rawPrompt && !selectedFileBase64) return;
             
             fieldRef.value = ""; 
             const windowRef = document.getElementById("chat-window");
 
-            let userNodeHtml = `
-                <div class="flex gap-4 max-w-3xl ml-auto flex-row-reverse animate-fade-in">
-                    <div class="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-sm font-black text-blue-400">User</div>
-                    <div class="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none text-sm font-medium shadow-md">${rawPrompt}</div>
-                </div>`;
-            windowRef.innerHTML += userNodeHtml;
+            if (rawPrompt) {
+                let userNodeHtml = `
+                    <div class="flex gap-4 max-w-3xl ml-auto flex-row-reverse animate-fade-in">
+                        <div class="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-sm font-black text-blue-400">User</div>
+                        <div class="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none text-sm font-medium shadow-md">${rawPrompt}</div>
+                    </div>`;
+                windowRef.innerHTML += userNodeHtml;
+            }
             windowRef.scrollTop = windowRef.scrollHeight;
 
             const aiNodeId = "ai_node_" + Date.now();
@@ -261,13 +272,23 @@
 
             try {
                 setTickerStatus("Streaming");
+                
+                // AN GYARA ANAN: An sauya 'message' zuwa 'prompt' domin yin daidai da Pydantic schema dinka
                 const response = await fetch(`${BACKEND_URL}/api/v2/chat/stream`, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: rawPrompt })
+                    headers: { 
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ 
+                        prompt: rawPrompt,
+                        session_id: currentSessionId,
+                        chat_mode: currentChatMode,
+                        file_base64: selectedFileBase64 ? selectedFileBase64 : "",
+                        mime_type: selectedFileMime ? selectedFileMime : ""
+                    })
                 });
 
-                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                if (!response.ok) throw new Error(`Backend Connection Error: ${response.status} ${response.statusText}`);
 
                 clearAttachment();
                 targetBox.innerHTML = ""; 
@@ -275,7 +296,7 @@
                 const streamReader = response.body.getReader();
                 const textDecoder = new TextDecoder("utf-8");
                 let cumulativeContextString = "";
-                let buffer = ""; // AN GYARA: Don rike ragowar chunks da basu cika ba
+                let buffer = ""; 
 
                 while (true) {
                     const { done, value } = await streamReader.read();
@@ -284,7 +305,6 @@
                     buffer += textDecoder.decode(value, { stream: true });
                     const segmentedLines = buffer.split("\n");
                     
-                    // Rike layi na karshe idan bai kare da \n ba (wato bai gama cika ba)
                     buffer = segmentedLines.pop(); 
                     
                     for (const rawLine of segmentedLines) {
@@ -294,7 +314,6 @@
                                 const JSON_Payload = JSON.parse(trimmedLine);
                                 if (JSON_Payload.chunk) {
                                     cumulativeContextString += JSON_Payload.chunk;
-                                    // Canza sabon layi zuwa <br> na HTML, sannan gyara tsarin **bold** na Markdown
                                     let formattedText = cumulativeContextString
                                         .replace(/\n/g, "<br>")
                                         .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
@@ -303,7 +322,6 @@
                                     windowRef.scrollTop = windowRef.scrollHeight;
                                 }
                             } catch (e) {
-                                // Idan ba JSON bane, jefa shi a matsayin text na yau da kullum
                                 if (!trimmedLine.startsWith("{")) {
                                     cumulativeContextString += trimmedLine;
                                     targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>");
@@ -313,7 +331,6 @@
                     }
                 }
                 
-                // Bincika idan akwai sauran abu a buffer bayan stream din ya kare
                 if (buffer.trim()) {
                     try {
                         const JSON_Payload = JSON.parse(buffer.trim());
@@ -327,7 +344,7 @@
                 setTickerStatus("Idle");
 
             } catch (err) {
-                targetBox.innerText = `Connection Error: Backend did not stream. Reason: ${err.message}`;
+                targetBox.innerHTML = `<span class="text-red-400 font-semibold">Error:</span> ${err.message}`;
                 setTickerStatus("Error");
             }
         }
