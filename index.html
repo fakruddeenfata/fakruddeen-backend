@@ -10,37 +10,22 @@
     
     <style>
         body { font-family: 'Inter', sans-serif; }
-        
-        /* Premium Smooth Scrollbar Customization */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #0b0f19; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
-
-        /* Glowing Animation Effects */
-        .glow-button {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        .glow-button:hover {
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
-            transform: translateY(-1px);
-        }
-        .ai-gradient-text {
-            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+        .glow-button { position: relative; transition: all 0.3s ease; }
+        .glow-button:hover { box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); transform: translateY(-1px); }
+        .ai-gradient-text { background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
 </head>
 <body class="bg-[#0b0f19] text-slate-100 h-screen flex overflow-hidden">
 
+    <!-- Sidebar Element -->
     <aside class="w-72 bg-[#070a13] flex flex-col justify-between hidden lg:flex border-r border-slate-900/80 z-20">
         <div class="p-4 flex flex-col flex-1 overflow-hidden">
             <div class="flex items-center gap-3 px-2 mb-6">
-                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-900/30">
-                    F
-                </div>
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white font-black shadow-lg">F</div>
                 <div class="flex flex-col">
                     <span class="text-sm font-black tracking-wider text-white">FATA AI SUITE</span>
                     <span class="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Workspace Core</span>
@@ -48,8 +33,7 @@
             </div>
 
             <button onclick="createNewSession()" class="glow-button w-full border border-slate-800/80 bg-[#0d1324] hover:bg-[#131b32] text-slate-200 hover:text-white rounded-xl p-3 text-sm flex items-center justify-center gap-3 font-semibold transition group">
-                <i class="fa-solid fa-square-plus text-blue-500 group-hover:text-blue-400 transition text-base"></i>
-                Start New Session
+                <i class="fa-solid fa-square-plus text-blue-500 group-hover:text-blue-400 transition text-base"></i>Start New Session
             </button>
             
             <div class="mt-8 flex-1 flex flex-col overflow-hidden">
@@ -57,8 +41,7 @@
                     <p class="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest">Recent Contexts</p>
                     <i class="fa-solid fa-clock-rotate-left text-xs text-slate-600"></i>
                 </div>
-                <div id="session-list" class="flex-1 space-y-1.5 custom-scrollbar overflow-y-auto pr-1">
-                </div>
+                <div id="session-list" class="flex-1 space-y-1.5 custom-scrollbar overflow-y-auto pr-1"></div>
             </div>
         </div>
         
@@ -69,9 +52,9 @@
                         <i class="fa-solid fa-user-shield text-sm text-blue-400"></i>
                     </div>
                     <div class="flex flex-col overflow-hidden">
-                        <span id="user-display-email" class="text-xs font-semibold text-slate-200 truncate">Securing guest...</span>
-                        <span id="infra-status-badge" class="text-[9px] text-green-400 font-bold flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Infrastructure Live
+                        <span id="user-display-email" class="text-xs font-semibold text-slate-200 truncate">Connecting...</span>
+                        <span id="infra-status-badge" class="text-[9px] text-yellow-400 font-bold flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span> Booting Engine
                         </span>
                     </div>
                 </div>
@@ -80,59 +63,44 @@
         </div>
     </aside>
 
+    <!-- Main Chat Interface -->
     <div class="flex-1 flex flex-col justify-between bg-[#0f1424] relative overflow-hidden">
-        
-        <nav class="w-full h-16 bg-[#090d1a]/90 backdrop-blur-md border-b border-slate-900/80 px-6 flex justify-between items-center z-10 shadow-sm">
+        <nav class="w-full h-16 bg-[#090d1a]/90 backdrop-blur-md border-b border-slate-900/80 px-6 flex justify-between items-center z-10">
             <div class="flex items-center gap-4">
-                <button class="lg:hidden text-slate-400 hover:text-white transition text-lg">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                <div class="flex items-center gap-2.5">
-                    <span class="text-lg font-black tracking-tight ai-gradient-text">FATA AI ULTRA</span>
-                    <span class="text-[10px] bg-indigo-950 text-indigo-400 px-2.5 py-0.5 rounded-md font-bold border border-indigo-900/60 uppercase">Cluster v2</span>
-                </div>
+                <span class="text-lg font-black tracking-tight ai-gradient-text">FATA AI ULTRA</span>
+                <span class="text-[10px] bg-indigo-950 text-indigo-400 px-2.5 py-0.5 rounded-md font-bold border border-indigo-900/60 uppercase">Cluster v2</span>
             </div>
             
             <div class="flex bg-[#05070d] p-1 rounded-xl border border-slate-800/60 shadow-inner">
-                <button onclick="setChatMode('standard')" id="btn-standard" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-md transition duration-200">
-                    <i class="fa-solid fa-bolt mr-1.5"></i>Standard
-                </button>
-                <button onclick="setChatMode('notebook')" id="btn-notebook" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition duration-200">
-                    <i class="fa-solid fa-book-open mr-1.5"></i>Notebook
-                </button>
-                <button onclick="setChatMode('voice')" id="btn-voice" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition duration-200">
-                    <i class="fa-solid fa-microphone mr-1.5"></i>Voice Chat
-                </button>
+                <button onclick="setChatMode('standard')" id="btn-standard" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-md">Standard</button>
+                <button onclick="setChatMode('notebook')" id="btn-notebook" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 ml-1">Notebook</button>
+                <button onclick="setChatMode('voice')" id="btn-voice" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 ml-1">Voice</button>
             </div>
 
             <div class="hidden sm:flex items-center gap-3">
-                <div class="text-xs bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-400 font-medium">
+                <div class="text-xs bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-400">
                     <span class="text-blue-400 font-bold">Model:</span> <span id="model-tag-display">Gemini 1.5 Flash Engine</span>
                 </div>
             </div>
         </nav>
 
         <main id="chat-window" class="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar space-y-6 max-w-4xl w-full mx-auto pb-40">
-            <div class="flex gap-4 max-w-3xl animate-fade-in">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-md flex-shrink-0">
-                    FA
-                </div>
-                <div class="bg-[#131a30] border border-slate-800/80 p-5 rounded-2xl rounded-tl-none leading-relaxed text-slate-200 shadow-xl shadow-black/5">
-                    <h3 class="font-bold text-base text-white mb-1">System Initiated Successfully</h3>
-                    <p class="text-sm text-slate-300">
-                        Welcome to **Fata AI Ultra Core Engine**. Powered by Google Gemini. I can execute advanced context parsing, code execution, and fast real-time responses.
-                    </p>
+            <div class="flex gap-4 max-w-3xl">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-black text-white flex-shrink-0">FA</div>
+                <div class="bg-[#131a30] border border-slate-800/80 p-5 rounded-2xl rounded-tl-none text-sm text-slate-200 shadow-xl">
+                    <h3 class="font-bold text-base text-white mb-1">System Connected Successfully</h3>
+                    <p class="text-sm text-slate-300">Welcome to Fata AI Ultra Engine. Type a prompt below to communicate with the Gemini core processor.</p>
                 </div>
             </div>
         </main>
 
+        <!-- Input Area Container -->
         <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-[#0f1424] via-[#0f1424]/95 to-transparent pt-12 pb-6 px-4 z-10">
-            <div class="max-w-3xl mx-auto bg-[#070a13] border border-slate-800/90 rounded-2xl shadow-2xl p-2.5 flex flex-col gap-2 focus-within:border-blue-600/60 focus-within:ring-1 focus-within:ring-blue-600/40 transition duration-300">
+            <div class="max-w-3xl mx-auto bg-[#070a13] border border-slate-800/90 rounded-2xl p-2.5 flex flex-col gap-2 focus-within:border-blue-600/60 transition">
                 
                 <div id="file-badge-area" class="flex flex-wrap gap-2 px-2 hidden">
                     <div class="bg-blue-950/80 border border-blue-800/60 px-3 py-1 rounded-lg flex items-center gap-2 text-xs text-blue-300">
-                        <i class="fa-solid fa-file-invoice text-blue-400"></i>
-                        <span id="file-name-span" class="max-w-[200px] truncate">Document.pdf</span>
+                        <i class="fa-solid fa-file-invoice"></i><span id="file-name-span" class="max-w-[200px] truncate">File</span>
                         <button onclick="clearAttachment()" class="text-slate-400 hover:text-white ml-1 font-bold">&times;</button>
                     </div>
                 </div>
@@ -146,86 +114,82 @@
                             <input type="file" id="file-input" class="hidden" onchange="processFilePayload(event)">
                         </label>
                         <div class="w-[1px] h-4 bg-slate-800 mx-1"></div>
-                        <span id="status-ticker" class="text-[10px] text-slate-600 font-semibold tracking-wide uppercase">Engine Idle</span>
+                        <span id="status-ticker" class="text-[10px] text-slate-600 font-semibold uppercase">Engine Idle</span>
                     </div>
                     
-                    <button onclick="executePipeline()" class="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-5 py-2 text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-blue-900/20 glow-button">
-                        <span>Send</span>
-                        <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                    <button onclick="executePipeline()" class="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-5 py-2 text-xs font-bold flex items-center gap-2 transition glow-button">
+                        <span>Send</span><i class="fa-solid fa-paper-plane text-[10px]"></i>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- LOGIC SYSTEM SCRIPT -->
     <script>
         const BACKEND_URL = "https://fata-ai-backend.onrender.com";
-        
         let currentSessionId = "session_" + Date.now();
         let currentChatMode = "standard";
-        
+        let authToken = null;
+
         let selectedFileBase64 = null;
         let selectedFileMime = null;
 
         function setTickerStatus(statusText, isError = false) {
             const ticker = document.getElementById("status-ticker");
             ticker.innerText = statusText;
-            if (isError) {
-                ticker.className = "text-[10px] text-red-400 font-bold tracking-wide uppercase";
-            } else {
-                ticker.className = "text-[10px] text-slate-600 font-semibold tracking-wide uppercase";
+            ticker.className = isError ? "text-[10px] text-red-400 font-bold uppercase" : "text-[10px] text-slate-600 font-semibold uppercase";
+        }
+
+        // Automatic Guest Core Authentication
+        async function runAuthenticationFlow() {
+            try {
+                setTickerStatus("Authenticating...");
+                const response = await fetch(`${BACKEND_URL}/api/v2/auth/guest`, { method: "POST" });
+                if (!response.ok) throw new Error("Auth cluster denied access.");
+                
+                const payload = await response.json();
+                authToken = payload.access_token;
+                
+                document.getElementById("user-display-email").innerText = payload.email.split("@")[0];
+                document.getElementById("infra-status-badge").innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Infrastructure Live`;
+                document.getElementById("infra-status-badge").className = "text-[9px] text-green-400 font-bold flex items-center gap-1";
+                setTickerStatus("Idle");
+            } catch (err) {
+                setTickerStatus("Auth Offline", true);
+                document.getElementById("infra-status-badge").innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Server Error`;
+                document.getElementById("infra-status-badge").className = "text-[9px] text-red-400 font-bold flex items-center gap-1";
             }
         }
 
-        // Kula da canjin yanayin Intanet kai tsaye (Online/Offline Monitor)
-        window.addEventListener('online', () => {
-            document.getElementById("infra-status-badge").innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Infrastructure Live`;
-            document.getElementById("infra-status-badge").className = "text-[9px] text-green-400 font-bold flex items-center gap-1";
-            setTickerStatus("Connected");
-        });
-
-        window.addEventListener('offline', () => {
-            document.getElementById("infra-status-badge").innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Disconnected`;
-            document.getElementById("infra-status-badge").className = "text-[9px] text-red-400 font-bold flex items-center gap-1";
-            setTickerStatus("No Internet", true);
-        });
+        window.addEventListener('online', () => { if(!authToken) runAuthenticationFlow(); });
+        window.addEventListener('offline', () => { setTickerStatus("No Internet", true); });
 
         function setChatMode(mode) {
             currentChatMode = mode;
-            const modelTag = document.getElementById("model-tag-display");
-            
-            if(mode === "notebook") {
-                modelTag.innerText = "Gemini 1.5 Pro Engine";
-            } else {
-                modelTag.innerText = "Gemini 1.5 Flash Engine";
-            }
-
+            document.getElementById("model-tag-display").innerText = mode === "notebook" ? "Gemini 1.5 Pro Engine" : "Gemini 1.5 Flash Engine";
             ["standard", "notebook", "voice"].forEach(m => {
-                const element = document.getElementById(`btn-${m}`);
-                if (m === mode) {
-                    element.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-md transition duration-200";
-                } else {
-                    element.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition duration-200";
-                }
+                document.getElementById(`btn-${m}`).className = m === mode ? 
+                    "px-4 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-md" : 
+                    "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 ml-1";
             });
         }
 
         function processFilePayload(event) {
-            const payload = event.target.files[0];
-            if (!payload) return;
-            selectedFileMime = payload.type;
-            document.getElementById("file-name-span").innerText = payload.name;
+            const file = event.target.files[0];
+            if (!file) return;
+            selectedFileMime = file.type;
+            document.getElementById("file-name-span").innerText = file.name;
             const reader = new FileReader();
             reader.onload = function(e) {
-                selectedFileBase64 = e.target.result.split(',')[1] || e.target.result;
+                selectedFileBase64 = e.target.result.split(',')[1];
                 document.getElementById("file-badge-area").classList.remove("hidden");
             };
-            reader.readAsDataURL(payload);
+            reader.readAsDataURL(file);
         }
 
         function clearAttachment() {
-            selectedFileBase64 = null;
-            selectedFileMime = null;
+            selectedFileBase64 = null; selectedFileMime = null;
             document.getElementById("file-input").value = "";
             document.getElementById("file-badge-area").classList.add("hidden");
         }
@@ -233,11 +197,9 @@
         function createNewSession() {
             currentSessionId = "session_" + Date.now();
             document.getElementById("chat-window").innerHTML = `
-                <div class="flex gap-4 max-w-3xl animate-fade-in">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-md">FA</div>
-                    <div class="bg-[#131a30] border border-slate-800/80 p-5 rounded-2xl rounded-tl-none text-sm text-slate-200 shadow-xl">
-                        New isolated context layer compiled. Proceed to issue prompts.
-                    </div>
+                <div class="flex gap-4 max-w-3xl">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-black text-white">FA</div>
+                    <div class="bg-[#131a30] border border-slate-800/80 p-5 rounded-2xl text-sm text-slate-200">New environment context layer ready.</div>
                 </div>`;
             syncSessionHistoryLog();
         }
@@ -245,170 +207,114 @@
         function syncSessionHistoryLog() {
             const listRef = document.getElementById("session-list");
             const node = document.createElement("div");
-            node.className = "p-2.5 bg-[#0d1324] hover:bg-[#131b32] rounded-xl text-xs text-slate-400 hover:text-white cursor-pointer truncate border border-slate-800/40 flex items-center gap-2.5 transition duration-150 group";
-            node.innerHTML = `<i class="fa-solid fa-message text-slate-600 group-hover:text-blue-400 transition"></i> Context: ${currentSessionId.substring(8)}`;
+            node.className = "p-2.5 bg-[#0d1324] hover:bg-[#131b32] rounded-xl text-xs text-slate-400 hover:text-white cursor-pointer truncate border border-slate-800/40 flex items-center gap-2.5 transition";
+            node.innerHTML = `<i class="fa-solid fa-message text-slate-600"></i> Context: ${currentSessionId.substring(8)}`;
             listRef.prepend(node);
         }
 
-        function handleKeyPress(event) {
-            if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                executePipeline();
-            }
-        }
+        function handleKeyPress(event) { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); executePipeline(); } }
 
         async function executePipeline() {
-            // 1. Duba idan babu intanet tun kafin mu tura request
-            if (!navigator.onLine) {
-                const windowRef = document.getElementById("chat-window");
-                windowRef.innerHTML += `
-                    <div class="flex gap-4 max-w-3xl animate-fade-in">
-                        <div class="w-9 h-9 rounded-xl bg-red-900/30 border border-red-500/40 flex items-center justify-center text-sm font-bold text-red-400 flex-shrink-0"><i class="fa-solid fa-wifi"></i></div>
-                        <div class="bg-red-950/40 border border-red-900/50 p-4 rounded-2xl rounded-tl-none text-sm text-red-300 shadow-xl">
-                            <strong class="text-red-400">Connection Failed:</strong> You are currently offline. Please check your internet connection and try again.
-                        </div>
-                    </div>`;
-                windowRef.scrollTop = windowRef.scrollHeight;
-                setTickerStatus("No Internet", true);
-                return;
-            }
+            if (!navigator.onLine) { setTickerStatus("No Internet", true); return; }
+            if (!authToken) { await runAuthenticationFlow(); if(!authToken) return; }
 
-            const fieldRef = document.getElementById("user-input");
-            const rawPrompt = fieldRef.value.trim();
-            if (!rawPrompt && !selectedFileBase64) return;
+            const inputField = document.getElementById("user-input");
+            const promptText = inputField.value.trim();
+            if (!promptText && !selectedFileBase64) return;
             
-            fieldRef.value = ""; 
+            inputField.value = "";
             const windowRef = document.getElementById("chat-window");
 
-            if (rawPrompt) {
-                let userNodeHtml = `
-                    <div class="flex gap-4 max-w-3xl ml-auto flex-row-reverse animate-fade-in">
+            if (promptText) {
+                windowRef.innerHTML += `
+                    <div class="flex gap-4 max-w-3xl ml-auto flex-row-reverse">
                         <div class="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-sm font-black text-blue-400">User</div>
-                        <div class="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none text-sm font-medium shadow-md">${rawPrompt}</div>
+                        <div class="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none text-sm font-medium">${promptText}</div>
                     </div>`;
-                windowRef.innerHTML += userNodeHtml;
             }
             windowRef.scrollTop = windowRef.scrollHeight;
 
-            const aiNodeId = "ai_node_" + Date.now();
-            let aiPlaceholderHtml = `
-                <div class="flex gap-4 max-w-3xl animate-fade-in">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-md flex-shrink-0">FA</div>
-                    <div id="${aiNodeId}" class="bg-[#131a30] border border-slate-800/80 p-5 rounded-2xl rounded-tl-none text-sm leading-relaxed text-slate-300 shadow-xl">
-                        <i class="fa-solid fa-compass-drafting animate-spin text-blue-500 mr-2"></i> Thinking...
+            const aiNodeId = "ai_" + Date.now();
+            windowRef.innerHTML += `
+                <div class="flex gap-4 max-w-3xl">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-black text-white flex-shrink-0">FA</div>
+                    <div id="${aiNodeId}" class="bg-[#131a30] border border-slate-800/80 p-5 rounded-2xl rounded-tl-none text-sm text-slate-300 shadow-xl">
+                        <i class="fa-solid fa-circle-notch animate-spin text-blue-500 mr-2"></i> Processing Request...
                     </div>
                 </div>`;
-            windowRef.innerHTML += aiPlaceholderHtml;
             windowRef.scrollTop = windowRef.scrollHeight;
 
-            const targetBox = document.getElementById(aiNodeId);
+            const responseBox = document.getElementById(aiNodeId);
 
             try {
-                setTickerStatus("Streaming");
-                
-                // Saita lokacin yanke kira (Timeout) na sakan 40 idan Render yana bacci
-                const controller = new AbController();
-                const timeoutId = setTimeout(() => controller.ab(), 40000);
+                setTickerStatus("Streaming...");
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 45000);
 
+                // GYARARREN URL HANYA: An daidaita ta zuwa /api/v2/chat/stream
                 const response = await fetch(`${BACKEND_URL}/api/v2/chat/stream`, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${authToken}`
+                    },
                     body: JSON.stringify({ 
-                        prompt: rawPrompt,
+                        message: promptText,
                         session_id: currentSessionId,
                         chat_mode: currentChatMode,
-                        file_base64: selectedFileBase64 ? selectedFileBase64 : "",
-                        mime_type: selectedFileMime ? selectedFileMime : ""
+                        file_base64: selectedFileBase64 || "",
+                        mime_type: selectedFileMime || ""
                     }),
                     signal: controller.signal
                 });
 
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    throw new Error(`Server returned status ${response.status} (${response.statusText}). Render might be restarting or overloaded.`);
-                }
-
+                clearTimeout(timeout);
+                if (!response.ok) throw new Error(`HTTP Status ${response.status}`);
+                
                 clearAttachment();
-                targetBox.innerHTML = ""; 
+                responseBox.innerHTML = "";
 
-                const streamReader = response.body.getReader();
-                const textDecoder = new TextDecoder("utf-8");
-                let cumulativeContextString = "";
-                let buffer = ""; 
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let fullText = "";
+                let streamBuffer = "";
 
                 while (true) {
-                    const { done, value } = await streamReader.read();
+                    const { done, value } = await reader.read();
                     if (done) break;
                     
-                    buffer += textDecoder.decode(value, { stream: true });
-                    const segmentedLines = buffer.split("\n");
-                    buffer = segmentedLines.pop(); 
+                    streamBuffer += decoder.decode(value, { stream: true });
+                    const lines = streamBuffer.split("\n");
+                    streamBuffer = lines.pop();
                     
-                    for (const rawLine of segmentedLines) {
-                        const trimmedLine = rawLine.trim();
-                        if (trimmedLine) {
+                    for (const line of lines) {
+                        if (line.trim()) {
                             try {
-                                const JSON_Payload = JSON.parse(trimmedLine);
-                                if (JSON_Payload.chunk) {
-                                    cumulativeContextString += JSON_Payload.chunk;
-                                    
-                                    // Aiko da rubutu tare da gyaran fassarar HTML tags cikin sauki
-                                    let formattedText = cumulativeContextString
-                                        .replace(/\n/g, "<br>")
-                                        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-                                        
-                                    targetBox.innerHTML = formattedText;
+                                const parsed = JSON.parse(line.trim());
+                                if (parsed.chunk) {
+                                    fullText += parsed.chunk;
+                                    responseBox.innerHTML = fullText.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
                                     windowRef.scrollTop = windowRef.scrollHeight;
                                 }
                             } catch (e) {
-                                // Idan chunk din ya zo a matsayin raw text maimakon JSON block
-                                if (!trimmedLine.startsWith("{")) {
-                                    cumulativeContextString += trimmedLine;
-                                    targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>");
+                                if (!line.trim().startsWith("{")) {
+                                    fullText += line;
+                                    responseBox.innerHTML = fullText.replace(/\n/g, "<br>");
                                 }
                             }
                         }
                     }
                 }
-                
-                if (buffer.trim()) {
-                    try {
-                        const JSON_Payload = JSON.parse(buffer.trim());
-                        if (JSON_Payload.chunk) {
-                            cumulativeContextString += JSON_Payload.chunk;
-                            targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>").replace(/\*\frac{.*?}{.*?}/g, "<strong>$1</strong>");
-                        }
-                    } catch(e) {}
-                }
-                
                 setTickerStatus("Idle");
-
             } catch (err) {
-                // Tace irin kuskuren da ya faru don nunawa mai amfani a fili
-                let errorMessage = err.message;
-                if (err.name === 'AbError') {
-                    errorMessage = "Server Response Timeout. Render spin-up taking longer than 40 seconds. Please try again.";
-                } else if (err.message.includes('Failed to fetch')) {
-                    errorMessage = "Failed to connect to backend engine. Server might be offline, or CORS blocked.";
-                }
-
-                targetBox.innerHTML = `
-                    <div class="text-red-400 font-bold mb-1 flex items-center gap-2">
-                        <i class="fa-solid fa-triangle-exclamation"></i> Pipeline Execution Error
-                    </div>
-                    <p class="text-xs text-red-300 bg-red-950/30 border border-red-900/50 p-2.5 rounded-lg mt-1 select-text">
-                        ${errorMessage}
-                    </p>
-                `;
+                responseBox.innerHTML = `<span class="text-red-400 font-semibold"><i class="fa-solid fa-triangle-exclamation"></i> Pipeline Error: ${err.message}</span>`;
                 setTickerStatus("Error", true);
             }
         }
 
         window.onload = () => {
-            document.getElementById("user-display-email").innerText = "guest_cluster_active";
-            setTickerStatus(navigator.onLine ? "Idle" : "No Internet", !navigator.onLine);
             syncSessionHistoryLog();
+            if (navigator.onLine) runAuthenticationFlow();
         };
     </script>
 </body>
