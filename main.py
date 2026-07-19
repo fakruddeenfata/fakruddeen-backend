@@ -1,4 +1,5 @@
 import datetime
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -6,8 +7,11 @@ from pydantic import BaseModel
 from google import genai
 import json
 
-# Initialize GenAI Client
-client = genai.Client()
+# WURIN GYARAN FARKO: Ciro API Key din daga Environment Variables da kanmu
+api_key = os.getenv("GEMINI_API_KEY")
+
+# Tilasta wa GenAI Client karbar makullin kai-tsaye ko da tana da tsarin "AQ..."
+client = genai.Client(api_key=api_key)
 
 app = FastAPI(
     title="Fata AI Ultra Core Engine",
@@ -15,7 +19,7 @@ app = FastAPI(
     description="Fata AI World Class Ultra-Scale Core Engine - Streaming Enabled"
 )
 
-# Robust Cross-Origin Pipeline (Fixed for seamless streaming)
+# Robust Cross-Origin Pipeline
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -30,12 +34,11 @@ class ChatRequest(BaseModel):
 @app.post("/api/v2/chat/stream", tags=["Fata AI Core"])
 async def stream_chat(request: ChatRequest):
     
-    # Mun canza zuwa async generator mai amfani da client.aio
     async def generate_ai_response():
         try:
-            # Amfani da client.aio.models yana tabbatar da async pipeline ya ga API key daidai
+            # WURIN GYARA NA BIYU: Mun canza zuwa gemini-1.5-flash domin tsallake kuskuren Region (403/401)
             response = await client.aio.models.generate_content_stream(
-                model='gemini-2.5-flash',
+                model='gemini-1.5-flash',
                 contents=request.prompt,
             )
             
@@ -45,7 +48,6 @@ async def stream_chat(request: ChatRequest):
                     yield f"{payload}\n"
                     
         except Exception as e:
-            # Idan an sami kuskure (kamar 401), zai tura muku bayani ta JSON
             error_payload = json.dumps({"chunk": f"Backend Connection Error: {str(e)}"})
             yield f"{error_payload}\n"
 
