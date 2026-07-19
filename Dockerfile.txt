@@ -19,8 +19,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Kwafi duka sauran kofofin code na folder din zuwa cikin container
 COPY . .
 
-# DABARAR SIRRI: Kirkiro tazarar karya mai suna 'app' ta hanyar symbolic link
-# Wannan zai sa kiran 'from app.core' da 'from core' duka su yi aiki lokaci guda!
+# Kirkiro tazarar karya mai suna 'app' ta hanyar symbolic link
 RUN ln -s /backend /backend/app
 
 # Bude kofa ta 8000 domin duniya ta iya shiga
@@ -28,6 +27,11 @@ EXPOSE 8000
 
 # Saita PYTHONPATH domin Python ya rika duba asalin '/backend'
 ENV PYTHONPATH=/backend
+
+# DABBARR SIRRI: Muna gaya wa dukkan Google SDKs su yafe kiran Google Cloud Metadata server
+# Wannan zai tilasta wa SDK din amfani da GEMINI_API_KEY din da ke kan Render baki daya
+ENV GOGC_NODE_AUTH_TYPE=direct
+ENV GOOGLE_API_USE_CLIENT_CERTIFICATE=false
 
 # Umarnin da zai kunna uvicorn ta hanyar kiran main:app kai tsaye
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

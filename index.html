@@ -70,7 +70,7 @@
                     </div>
                     <div class="flex flex-col overflow-hidden">
                         <span id="user-display-email" class="text-xs font-semibold text-slate-200 truncate">Securing guest...</span>
-                        <span class="text-[9px] text-green-400 font-bold flex items-center gap-1">
+                        <span id="infra-status-badge" class="text-[9px] text-green-400 font-bold flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Infrastructure Live
                         </span>
                     </div>
@@ -167,9 +167,28 @@
         let selectedFileBase64 = null;
         let selectedFileMime = null;
 
-        function setTickerStatus(statusText) {
-            document.getElementById("status-ticker").innerText = statusText;
+        function setTickerStatus(statusText, isError = false) {
+            const ticker = document.getElementById("status-ticker");
+            ticker.innerText = statusText;
+            if (isError) {
+                ticker.className = "text-[10px] text-red-400 font-bold tracking-wide uppercase";
+            } else {
+                ticker.className = "text-[10px] text-slate-600 font-semibold tracking-wide uppercase";
+            }
         }
+
+        // Kula da canjin yanayin Intanet kai tsaye (Online/Offline Monitor)
+        window.addEventListener('online', () => {
+            document.getElementById("infra-status-badge").innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Infrastructure Live`;
+            document.getElementById("infra-status-badge").className = "text-[9px] text-green-400 font-bold flex items-center gap-1";
+            setTickerStatus("Connected");
+        });
+
+        window.addEventListener('offline', () => {
+            document.getElementById("infra-status-badge").innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Disconnected`;
+            document.getElementById("infra-status-badge").className = "text-[9px] text-red-400 font-bold flex items-center gap-1";
+            setTickerStatus("No Internet", true);
+        });
 
         function setChatMode(mode) {
             currentChatMode = mode;
@@ -198,7 +217,6 @@
             document.getElementById("file-name-span").innerText = payload.name;
             const reader = new FileReader();
             reader.onload = function(e) {
-                // Raba data URL din don dauko ainihin base64 string kadai idan kana bukata
                 selectedFileBase64 = e.target.result.split(',')[1] || e.target.result;
                 document.getElementById("file-badge-area").classList.remove("hidden");
             };
@@ -240,6 +258,21 @@
         }
 
         async function executePipeline() {
+            // 1. Duba idan babu intanet tun kafin mu tura request
+            if (!navigator.onLine) {
+                const windowRef = document.getElementById("chat-window");
+                windowRef.innerHTML += `
+                    <div class="flex gap-4 max-w-3xl animate-fade-in">
+                        <div class="w-9 h-9 rounded-xl bg-red-900/30 border border-red-500/40 flex items-center justify-center text-sm font-bold text-red-400 flex-shrink-0"><i class="fa-solid fa-wifi"></i></div>
+                        <div class="bg-red-950/40 border border-red-900/50 p-4 rounded-2xl rounded-tl-none text-sm text-red-300 shadow-xl">
+                            <strong class="text-red-400">Connection Failed:</strong> You are currently offline. Please check your internet connection and try again.
+                        </div>
+                    </div>`;
+                windowRef.scrollTop = windowRef.scrollHeight;
+                setTickerStatus("No Internet", true);
+                return;
+            }
+
             const fieldRef = document.getElementById("user-input");
             const rawPrompt = fieldRef.value.trim();
             if (!rawPrompt && !selectedFileBase64) return;
@@ -273,22 +306,28 @@
             try {
                 setTickerStatus("Streaming");
                 
-                // AN GYARA ANAN: An sauya 'message' zuwa 'prompt' domin yin daidai da Pydantic schema dinka
+                // Saita lokacin yanke kira (Timeout) na sakan 40 idan Render yana bacci
+                const controller = new AbController();
+                const timeoutId = setTimeout(() => controller.ab(), 40000);
+
                 const response = await fetch(`${BACKEND_URL}/api/v2/chat/stream`, {
                     method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ 
                         prompt: rawPrompt,
                         session_id: currentSessionId,
                         chat_mode: currentChatMode,
                         file_base64: selectedFileBase64 ? selectedFileBase64 : "",
                         mime_type: selectedFileMime ? selectedFileMime : ""
-                    })
+                    }),
+                    signal: controller.signal
                 });
 
-                if (!response.ok) throw new Error(`Backend Connection Error: ${response.status} ${response.statusText}`);
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`Server returned status ${response.status} (${response.statusText}). Render might be restarting or overloaded.`);
+                }
 
                 clearAttachment();
                 targetBox.innerHTML = ""; 
@@ -304,7 +343,6 @@
                     
                     buffer += textDecoder.decode(value, { stream: true });
                     const segmentedLines = buffer.split("\n");
-                    
                     buffer = segmentedLines.pop(); 
                     
                     for (const rawLine of segmentedLines) {
@@ -314,6 +352,8 @@
                                 const JSON_Payload = JSON.parse(trimmedLine);
                                 if (JSON_Payload.chunk) {
                                     cumulativeContextString += JSON_Payload.chunk;
+                                    
+                                    // Aiko da rubutu tare da gyaran fassarar HTML tags cikin sauki
                                     let formattedText = cumulativeContextString
                                         .replace(/\n/g, "<br>")
                                         .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
@@ -322,6 +362,7 @@
                                     windowRef.scrollTop = windowRef.scrollHeight;
                                 }
                             } catch (e) {
+                                // Idan chunk din ya zo a matsayin raw text maimakon JSON block
                                 if (!trimmedLine.startsWith("{")) {
                                     cumulativeContextString += trimmedLine;
                                     targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>");
@@ -336,7 +377,7 @@
                         const JSON_Payload = JSON.parse(buffer.trim());
                         if (JSON_Payload.chunk) {
                             cumulativeContextString += JSON_Payload.chunk;
-                            targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+                            targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>").replace(/\*\frac{.*?}{.*?}/g, "<strong>$1</strong>");
                         }
                     } catch(e) {}
                 }
@@ -344,14 +385,29 @@
                 setTickerStatus("Idle");
 
             } catch (err) {
-                targetBox.innerHTML = `<span class="text-red-400 font-semibold">Error:</span> ${err.message}`;
-                setTickerStatus("Error");
+                // Tace irin kuskuren da ya faru don nunawa mai amfani a fili
+                let errorMessage = err.message;
+                if (err.name === 'AbError') {
+                    errorMessage = "Server Response Timeout. Render spin-up taking longer than 40 seconds. Please try again.";
+                } else if (err.message.includes('Failed to fetch')) {
+                    errorMessage = "Failed to connect to backend engine. Server might be offline, or CORS blocked.";
+                }
+
+                targetBox.innerHTML = `
+                    <div class="text-red-400 font-bold mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Pipeline Execution Error
+                    </div>
+                    <p class="text-xs text-red-300 bg-red-950/30 border border-red-900/50 p-2.5 rounded-lg mt-1 select-text">
+                        ${errorMessage}
+                    </p>
+                `;
+                setTickerStatus("Error", true);
             }
         }
 
         window.onload = () => {
             document.getElementById("user-display-email").innerText = "guest_cluster_active";
-            setTickerStatus("Idle");
+            setTickerStatus(navigator.onLine ? "Idle" : "No Internet", !navigator.onLine);
             syncSessionHistoryLog();
         };
     </script>

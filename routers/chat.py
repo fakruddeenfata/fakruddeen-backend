@@ -4,7 +4,7 @@ import datetime
 import os
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel  # Mun tabbatar yana sama tsaf dindindin
+from pydantic import BaseModel  
 from google import genai
 from google.genai import types
 from app.core.config import settings
@@ -16,17 +16,9 @@ from app.middlewares.rate_limiter import rate_limiter
 router = APIRouter(prefix="/chat", tags=["Chat Engine"])
 
 # ----------------------------------------------------------------------
-# AN GYARA ANAN: An sanya http_options headers domin goyon bayan makullin 'AQ.'
-# Wannan ita ce dabara mafi inganci da za ta hana jefa 401 Error.
+# AN TAFI DA ANAN: An cire kiran client daga sama domin hana 401 a Docker build time.
+# Yanzu za mu rika kiransa a cikin endpoints da ainihin API key.
 # ----------------------------------------------------------------------
-api_key_str = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(
-    http_options={
-        "headers": {
-            "x-goog-api-key": api_key_str
-        }
-    }
-)
 
 def limit_context_history(history: list, max_turns: int = 15) -> list:
     if len(history) <= max_turns * 2:
@@ -60,12 +52,20 @@ async def save_chat_to_mongodb(session_id_str: str, history_list: list, mode: st
 # ---------------------------------------------------------
 class ImageRequest(BaseModel):
     prompt: str
-    session_id: str  # Mun kara session_id anan don adana tarihin hoton!
+    session_id: str  
 
 @router.post("/generate-image", dependencies=[Depends(rate_limiter)])
 async def generate_image_endpoint(req: ImageRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     try:
         user_email = current_user["sub"]
+        
+        # Dauko API key da tabbatar da shi a lokacin kiran endpoint
+        api_key_str = os.environ.get("GEMINI_API_KEY")
+        if not api_key_str:
+            raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured on Render.")
+            
+        # Samar da amfani na musamman ga Imagen ta hanyar tilasta masa Key din
+        client = genai.Client(api_key=api_key_str)
         
         # 1. Kira babban injin kera hoto na Google Imagen 3
         result = client.models.generate_images(
@@ -83,15 +83,14 @@ async def generate_image_endpoint(req: ImageRequest, background_tasks: Backgroun
             base64_image = base64.b64encode(generated_image.image.image_bytes).decode("utf-8")
             full_image_uri = f"data:image/jpeg;base64,{base64_image}"
             
-            # 2. Dauko tsofaffin hirarakin wannan session din daga MongoDB don mu saka hoton a ciki
+            # 2. Dauko tsofaffin hirarakin wannan session din daga MongoDB
             existing_chat = await chat_collection.find_one({"_id": req.session_id})
             history = existing_chat.get("messages", []) if existing_chat else []
             
-            # Sanya prompt din user da hoton da aka kera a tarihin hira
             history.append({"role": "user", "content": f"Kera mini hoton: {req.prompt}"})
             history.append({"role": "model", "content": f"[Generated Image]", "image_url": full_image_uri})
             
-            # 3. Turawa Background Task ta adana a MongoDB ba tare da jinkirta amsar user ba
+            # 3. Turawa Background Task
             background_tasks.add_task(save_chat_to_mongodb, req.session_id, history, "image_generation", user_email)
             
             return {
@@ -113,9 +112,18 @@ async def generate_image_endpoint(req: ImageRequest, background_tasks: Backgroun
 async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     try:
         user_email = current_user["sub"]
-        cache_key = f"chat_session:{req.session_id}"
         
+        # Dauko API key da tabbatar da shi a lokacin kiran endpoint
+        api_key_str = os.environ.get("GEMINI_API_KEY")
+        if not api_key_str:
+            raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured on Render.")
+            
+        # TILASTA WA SDK AMFANI DA API KEY TSANTSA (Hana rikicewar OAuth2 a Docker)
+        client = genai.Client(api_key=api_key_str)
+        
+        cache_key = f"chat_session:{req.session_id}"
         cached_history = await redis_client.get(cache_key)
+        
         if cached_history:
             history = json.loads(cached_history)
         else:
@@ -136,7 +144,6 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
         
         gemini_contents = []
         for msg in limit_context_history(history):
-            # Tace sakonni don kada bayanan hoto (image_url) su jefa Gemini a kuskure
             if "content" in msg:
                 if msg["role"] == "user":
                     gemini_contents.append(types.Content(role="user", parts=[types.Part.from_text(text=msg["content"])]))
@@ -148,7 +155,6 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
             gemini_contents[-1].parts.append(file_part)
 
         system_instruction = "You are Fata AI, an advanced global AI assistant created by Fakruddeen. Respond in the user's input language."
-        
         chosen_model = 'gemini-1.5-flash'
         
         active_tools = [
