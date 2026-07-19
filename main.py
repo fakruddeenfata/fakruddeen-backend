@@ -36,9 +36,9 @@ async def stream_chat(request: ChatRequest):
     
     async def generate_ai_response():
         try:
-            # WURIN GYARA NA BIYU: Mun canza zuwa gemini-1.5-flash domin tsallake kuskuren Region (403/401)
+            # AN GYARA: Mun mayar da shi zuwa gemini-2.5-flash domin dacewa da sabon API Key na v1beta
             response = await client.aio.models.generate_content_stream(
-                model='gemini-1.5-flash',
+                model='gemini-2.5-flash',
                 contents=request.prompt,
             )
             
