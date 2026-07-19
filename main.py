@@ -36,10 +36,10 @@ async def stream_chat(request: ChatRequest):
     
     async def generate_ai_response():
         try:
-            # AN GYARA WURIN MODEL DA KYAU: An sauya zuwa 'gemini-2.5-flash' ko 'gemini-2.0-flash'
-            # Domin sabon SDK na Google (google-genai) ya fi gane wannan ga sabbin API keys
+            # AN GYARA YANZU: An dawo da sunan model din zuwa 'gemini-2.5-flash-latest' 
+            # Wannan shi ne zai wuce da sabon API Key dinka ba tare da 404 Error ba
             response = await client.aio.models.generate_content_stream(
-                model='gemini-2.5-flash',
+                model='gemini-2.5-flash-latest',
                 contents=request.prompt,
             )
             
