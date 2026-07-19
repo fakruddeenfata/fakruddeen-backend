@@ -15,8 +15,18 @@ from app.middlewares.rate_limiter import rate_limiter
 
 router = APIRouter(prefix="/chat", tags=["Chat Engine"])
 
-# Amfani da sabon tsarin Client na google-genai library
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+# ----------------------------------------------------------------------
+# AN GYARA ANAN: An sanya http_options headers domin goyon bayan makullin 'AQ.'
+# Wannan ita ce dabara mafi inganci da za ta hana jefa 401 Error.
+# ----------------------------------------------------------------------
+api_key_str = os.environ.get("GEMINI_API_KEY")
+client = genai.Client(
+    http_options={
+        "headers": {
+            "x-goog-api-key": api_key_str
+        }
+    }
+)
 
 def limit_context_history(history: list, max_turns: int = 15) -> list:
     if len(history) <= max_turns * 2:
@@ -139,7 +149,6 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
 
         system_instruction = "You are Fata AI, an advanced global AI assistant created by Fakruddeen. Respond in the user's input language."
         
-        # AN GYARA MATSALAR TSOHON MODEL ANAN:
         chosen_model = 'gemini-1.5-flash'
         
         active_tools = [
@@ -148,7 +157,7 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
         ]
 
         if req.chat_mode == "notebook":
-            chosen_model = 'gemini-1.5-pro'  # AN GYARA NAI MA ZUWA PRO NA 1.5
+            chosen_model = 'gemini-1.5-pro'
             system_instruction += " You are in Notebook Mode. Focus heavily on data synthesis."
         elif req.chat_mode == "voice":
             system_instruction += " You are in Voice Chat Mode. Short, conversational responses only."

@@ -7,11 +7,18 @@ from pydantic import BaseModel
 from google import genai
 import json
 
-# WURIN GYARAN FARKO: Ciro API Key din daga Environment Variables da kanmu
+# Dauko API key din
 api_key = os.getenv("GEMINI_API_KEY")
 
-# Tilasta wa GenAI Client karbar makullin kai-tsaye ko da tana da tsarin "AQ..."
-client = genai.Client(api_key=api_key)
+# TILASTA WA SDK: Mun cire api_key a ciki, mun saka shi a matsayin custom header ta http_options
+# Wannan ita ce kadai dabarar da ke sa makullin 'AQ.' yin aiki da sabon SDK ba tare da 401 Error ba.
+client = genai.Client(
+    http_options={
+        "headers": {
+            "x-goog-api-key": api_key
+        }
+    }
+)
 
 app = FastAPI(
     title="Fata AI Ultra Core Engine",
@@ -19,7 +26,6 @@ app = FastAPI(
     description="Fata AI World Class Ultra-Scale Core Engine - Streaming Enabled"
 )
 
-# Robust Cross-Origin Pipeline
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -36,8 +42,6 @@ async def stream_chat(request: ChatRequest):
     
     async def generate_ai_response():
         try:
-            # AN GYARA MATSALAR MODEL GABADA'YA:
-            # An sauya sunan model din zuwa 'gemini-1.5-flash' wanda ke da izini kuma yana aiki.
             response = await client.aio.models.generate_content_stream(
                 model='gemini-1.5-flash',
                 contents=request.prompt,
