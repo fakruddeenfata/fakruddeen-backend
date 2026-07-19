@@ -138,7 +138,9 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
             gemini_contents[-1].parts.append(file_part)
 
         system_instruction = "You are Fata AI, an advanced global AI assistant created by Fakruddeen. Respond in the user's input language."
-        chosen_model = 'gemini-2.5-flash'
+        
+        # AN GYARA MATSALAR TSOHON MODEL ANAN:
+        chosen_model = 'gemini-1.5-flash'
         
         active_tools = [
             types.Tool(google_search=types.GoogleSearch()),
@@ -146,7 +148,7 @@ async def chat_endpoint(req: ChatRequest, background_tasks: BackgroundTasks, cur
         ]
 
         if req.chat_mode == "notebook":
-            chosen_model = 'gemini-2.5-pro'
+            chosen_model = 'gemini-1.5-pro'  # AN GYARA NAI MA ZUWA PRO NA 1.5
             system_instruction += " You are in Notebook Mode. Focus heavily on data synthesis."
         elif req.chat_mode == "voice":
             system_instruction += " You are in Voice Chat Mode. Short, conversational responses only."

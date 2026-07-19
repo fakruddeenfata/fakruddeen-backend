@@ -37,10 +37,9 @@ async def stream_chat(request: ChatRequest):
     async def generate_ai_response():
         try:
             # AN GYARA MATSALAR MODEL GABADA'YA:
-            # An sauya sunan model din zuwa 'gemini-2.5-flash' ko 'gemini-1.5-flash' 
-            # wanda ke da izini a kowane sabon asusu na Google AI Studio.
+            # An sauya sunan model din zuwa 'gemini-1.5-flash' wanda ke da izini kuma yana aiki.
             response = await client.aio.models.generate_content_stream(
-                model='gemini-2.5-flash',
+                model='gemini-1.5-flash',
                 contents=request.prompt,
             )
             

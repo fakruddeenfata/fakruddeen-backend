@@ -13,7 +13,7 @@ Wannan shi ne babban injin backend na Fata AI wanda aka gina shi don jure nauyin
 
 1. Sanya dukkan sirrin tsarin (Environment Variables):
 ```bash
-export GEMINI_API_KEY="AQ.Ab8RN6KxeAsauh85yb0vRkDWKTvp15bLeau9p5nPIM0xhMqnbQ"
+export GEMINI_API_KEY="AQ.Ab8RN6JuD1a5NyJ4-SdvZi29gBXD9JbpinfTR58NbN-zmMfoTg"
 export DATABASE_URL="postgresql+asyncpg://postgres:password@localhost/fata_auth"
 export MONGO_URL="mongodb://localhost:27017"
 export REDIS_URL="redis://localhost:6379/0"

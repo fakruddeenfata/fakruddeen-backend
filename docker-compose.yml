@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - GEMINI_API_KEY=AQ.Ab8RN6KxeAsauh85yb0vRkDWKTvp15bLeau9p5nPIM0xhMqnbQ
+      - GEMINI_API_KEY=AQ.Ab8RN6JuD1a5NyJ4-SdvZi29gBXD9JbpinfTR58NbN-zmMfoTg
       - DATABASE_URL=postgresql+asyncpg://postgres:fata_secret_2026@postgres_db:5432/fata_auth
       - MONGO_URL=mongodb://mongo_db:27017
       - REDIS_URL=redis://redis_cache:6379/0

@@ -58,7 +58,7 @@
                     <i class="fa-solid fa-clock-rotate-left text-xs text-slate-600"></i>
                 </div>
                 <div id="session-list" class="flex-1 space-y-1.5 custom-scrollbar overflow-y-auto pr-1">
-                    </div>
+                </div>
             </div>
         </div>
         
@@ -230,7 +230,6 @@
             }
         }
 
-        // CORRECTED PIPELINE ENTRY POINT WITH ALIGNED ROUTE
         async function executePipeline() {
             const fieldRef = document.getElementById("user-input");
             const rawPrompt = fieldRef.value.trim();
@@ -252,7 +251,7 @@
                 <div class="flex gap-4 max-w-3xl animate-fade-in">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-sm font-black text-white shadow-md flex-shrink-0">FA</div>
                     <div id="${aiNodeId}" class="bg-[#131a30] border border-slate-800/80 p-5 rounded-2xl rounded-tl-none text-sm leading-relaxed text-slate-300 shadow-xl">
-                        <i class="fa-solid fa-compass-drafting animate-spin text-blue-500 mr-2"></i> Analyzing workspace...
+                        <i class="fa-solid fa-compass-drafting animate-spin text-blue-500 mr-2"></i> Thinking...
                     </div>
                 </div>`;
             windowRef.innerHTML += aiPlaceholderHtml;
@@ -262,7 +261,6 @@
 
             try {
                 setTickerStatus("Streaming");
-                // ALIGNED ENDPOINT ROUTE INTERACTION
                 const response = await fetch(`${BACKEND_URL}/api/v2/chat/stream`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -277,13 +275,17 @@
                 const streamReader = response.body.getReader();
                 const textDecoder = new TextDecoder("utf-8");
                 let cumulativeContextString = "";
+                let buffer = ""; // AN GYARA: Don rike ragowar chunks da basu cika ba
 
                 while (true) {
                     const { done, value } = await streamReader.read();
                     if (done) break;
                     
-                    const computationalChunk = textDecoder.decode(value, { stream: true });
-                    const segmentedLines = computationalChunk.split("\n");
+                    buffer += textDecoder.decode(value, { stream: true });
+                    const segmentedLines = buffer.split("\n");
+                    
+                    // Rike layi na karshe idan bai kare da \n ba (wato bai gama cika ba)
+                    buffer = segmentedLines.pop(); 
                     
                     for (const rawLine of segmentedLines) {
                         const trimmedLine = rawLine.trim();
@@ -292,11 +294,16 @@
                                 const JSON_Payload = JSON.parse(trimmedLine);
                                 if (JSON_Payload.chunk) {
                                     cumulativeContextString += JSON_Payload.chunk;
-                                    targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>");
+                                    // Canza sabon layi zuwa <br> na HTML, sannan gyara tsarin **bold** na Markdown
+                                    let formattedText = cumulativeContextString
+                                        .replace(/\n/g, "<br>")
+                                        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+                                        
+                                    targetBox.innerHTML = formattedText;
                                     windowRef.scrollTop = windowRef.scrollHeight;
                                 }
                             } catch (e) {
-                                // Fallback for raw plaintext injection loops
+                                // Idan ba JSON bane, jefa shi a matsayin text na yau da kullum
                                 if (!trimmedLine.startsWith("{")) {
                                     cumulativeContextString += trimmedLine;
                                     targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>");
@@ -305,10 +312,22 @@
                         }
                     }
                 }
+                
+                // Bincika idan akwai sauran abu a buffer bayan stream din ya kare
+                if (buffer.trim()) {
+                    try {
+                        const JSON_Payload = JSON.parse(buffer.trim());
+                        if (JSON_Payload.chunk) {
+                            cumulativeContextString += JSON_Payload.chunk;
+                            targetBox.innerHTML = cumulativeContextString.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+                        }
+                    } catch(e) {}
+                }
+                
                 setTickerStatus("Idle");
 
             } catch (err) {
-                targetBox.innerText = `Outage Notice: Could not stream from backend. Reference: ${err.message}`;
+                targetBox.innerText = `Connection Error: Backend did not stream. Reason: ${err.message}`;
                 setTickerStatus("Error");
             }
         }
