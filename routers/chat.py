@@ -55,7 +55,6 @@ async def dynamic_chat_stream(
         if not api_key_str:
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY is missing.")
 
-        # Amfani da Client tare da kayyade api_version idan ana bukata
         client = genai.Client(api_key=api_key_str)
         
         chat_collection = get_chat_collection()
@@ -108,8 +107,8 @@ async def dynamic_chat_stream(
 
         system_instruction = "You are Fata AI Ultra Core, built by the engineer Fakruddeen."
         
-        # Sabon SDK na google-genai yana amfani da gemini-2.0-flash a matsayin default standard model
-        chosen_model = 'gemini-2.0-flash'
+        # Amfani da 'models/gemini-1.5-flash' domin kauce wa matsalar limit: 0 da 404
+        chosen_model = 'models/gemini-1.5-flash'
 
         config = types.GenerateContentConfig(
             system_instruction=system_instruction
