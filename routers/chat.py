@@ -5,8 +5,7 @@ import json
 import tempfile
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 from core.database import get_chat_collection, get_redis_client
 from core.security import get_current_user
@@ -55,7 +54,8 @@ async def dynamic_chat_stream(
         if not api_key_str:
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY is missing.")
 
-        client = genai.Client(api_key=api_key_str)
+        # Initalize google-generativeai API
+        genai.configure(api_key=api_key_str)
         
         chat_collection = get_chat_collection()
         redis_client = get_redis_client()
@@ -72,9 +72,15 @@ async def dynamic_chat_stream(
                 if existing_chat:
                     history = existing_chat.get("messages", [])
 
-        uploaded_file_ref = None
-        clean_base64 = None
-        
+        # Format history into google-generativeai format
+        formatted_history = []
+        for msg in limit_context_history(history):
+            if "content" in msg:
+                role_type = "user" if msg["role"] == "user" else "model"
+                formatted_history.append({"role": role_type, "parts": [msg["content"]]})
+
+        # Process uploaded files or images if present
+        uploaded_part = None
         if req.file_base64 and req.mime_type:
             clean_base64 = req.file_base64.split(",")[1] if "," in req.file_base64 else req.file_base64
             file_bytes = base64.b64decode(clean_base64)
@@ -85,44 +91,41 @@ async def dynamic_chat_stream(
                     tmp.write(file_bytes)
                     tmp_path = tmp.name
                 
-                uploaded_file_ref = client.files.upload(file=tmp_path)
+                uploaded_part = genai.upload_file(path=tmp_path)
                 os.unlink(tmp_path)
-            
+            else:
+                uploaded_part = {
+                    "mime_type": req.mime_type,
+                    "data": file_bytes
+                }
+
+        user_prompt_parts = []
         if req.message:
-            history.append({"role": "user", "content": req.message})
-        elif req.file_base64:
-            history.append({"role": "user", "content": f"[Payload Injected: {req.mime_type}]"})
-        
-        gemini_contents = []
-        for msg in limit_context_history(history):
-            if "content" in msg:
-                role_type = "user" if msg["role"] == "user" else "model"
-                gemini_contents.append(types.Content(role=role_type, parts=[types.Part.from_text(text=msg["content"])]))
+            user_prompt_parts.append(req.message)
+        if uploaded_part:
+            user_prompt_parts.append(uploaded_part)
 
-        if gemini_contents and gemini_contents[-1].role == "user":
-            if uploaded_file_ref:
-                gemini_contents[-1].parts.append(uploaded_file_ref)
-            elif clean_base64:
-                gemini_contents[-1].parts.append(types.Part.from_bytes(data=base64.b64decode(clean_base64), mime_type=req.mime_type))
+        if not user_prompt_parts:
+            user_prompt_parts.append("Hello")
 
+        # Record user message in history
+        history.append({"role": "user", "content": req.message or f"[Media Payload: {req.mime_type}]"})
+
+        # Setup model instance
         system_instruction = "You are Fata AI Ultra Core, built by the engineer Fakruddeen."
-        
-        # Amfani da 'models/gemini-1.5-flash' domin kauce wa matsalar limit: 0 da 404
-        chosen_model = 'models/gemini-1.5-flash'
-
-        config = types.GenerateContentConfig(
+        model = genai.GenerativeModel(
+            model_name='gemini-1.5-flash',
             system_instruction=system_instruction
         )
+
+        # Start or continue chat session
+        chat_session = model.start_chat(history=formatted_history)
 
         async def generate_chunks():
             full_response = ""
             try:
-                response_stream = client.models.generate_content_stream(
-                    model=chosen_model, 
-                    contents=gemini_contents, 
-                    config=config
-                )
-                for chunk in response_stream:
+                response = chat_session.send_message(user_prompt_parts, stream=True)
+                for chunk in response:
                     if chunk.text:
                         full_response += chunk.text
                         yield chunk.text
