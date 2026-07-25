@@ -4,8 +4,7 @@ import datetime
 import os
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status
 from pydantic import BaseModel
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 from core.database import get_chat_collection
 from core.security import get_current_user
@@ -55,23 +54,19 @@ async def generate_creative_image(
                 detail="GEMINI_API_KEY pipeline variable is unconfigured."
             )
             
-        client = genai.Client(api_key=api_key_str)
-        
-        result = client.models.generate_images(
-            model='imagen-3.0-generate-002',
+        genai.configure(api_key=api_key_str)
+        model = genai.GenerativeModel('imagen-3.0-generate-002')
+
+        result = model.generate_images(
             prompt=req.prompt,
-            config=types.GenerateImagesConfig(
-                number_of_images=1,
-                output_mime_type="image/jpeg",
-                aspect_ratio="1:1",
-                person_generation="ALLOW_ADULT"
-            )
+            number_of_images=1,
+            aspect_ratio="1:1"
         )
         
         chat_collection = get_chat_collection()
         
-        for generated_image in result.generated_images:
-            base64_image = base64.b64encode(generated_image.image.image_bytes).decode("utf-8")
+        for generated_image in result.images:
+            base64_image = base64.b64encode(generated_image._image_bytes).decode("utf-8")
             full_image_uri = f"data:image/jpeg;base64,{base64_image}"
             
             history = []

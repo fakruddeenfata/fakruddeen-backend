@@ -1,7 +1,7 @@
 import os
 import tempfile
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
-from google import genai
+import google.generativeai as genai
 
 from core.security import get_current_user
 
@@ -17,7 +17,7 @@ async def upload_media_to_gemini(
         if not api_key:
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY environment variable is missing.")
             
-        client = genai.Client(api_key=api_key)
+        genai.configure(api_key=api_key)
         
         suffix = f".{file.filename.split('.')[-1]}" if "." in file.filename else ""
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -25,7 +25,7 @@ async def upload_media_to_gemini(
             tmp.write(content)
             tmp_path = tmp.name
 
-        file_ref = client.files.upload(file=tmp_path)
+        file_ref = genai.upload_file(path=tmp_path)
         os.unlink(tmp_path)
         
         return {
