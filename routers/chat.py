@@ -53,7 +53,7 @@ async def dynamic_chat_stream(
         api_key_str = os.environ.get("GEMINI_API_KEY")
         
         if not api_key_str:
-            raise HTTPException(status_code=500, detail="GEMINI_API_KEY variable is missing.")
+            raise HTTPException(status_code=500, detail="GEMINI_API_KEY is missing.")
 
         client = genai.Client(api_key=api_key_str)
         
@@ -105,19 +105,14 @@ async def dynamic_chat_stream(
             elif clean_base64:
                 gemini_contents[-1].parts.append(types.Part.from_bytes(data=base64.b64decode(clean_base64), mime_type=req.mime_type))
 
-        system_instruction = "You are Fata AI Ultra Core, the apex AI network built by the engineer Fakruddeen."
-        chosen_model = 'gemini-2.0-flash'
+        system_instruction = "You are Fata AI Ultra Core, built by the engineer Fakruddeen."
+        
+        # Amfani da stable gemini-1.5-flash wanda v1beta endpoint yake goyon baya ba tare da error ba:
+        chosen_model = 'gemini-1.5-flash'
 
-        if req.chat_mode == "thinking":
-            chosen_model = 'gemini-2.0-flash-thinking-exp'
-            config = types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                thinking_config=types.ThinkingConfig(thinking_budget=req.thinking_budget)
-            )
-        else:
-            config = types.GenerateContentConfig(
-                system_instruction=system_instruction
-            )
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction
+        )
 
         async def generate_chunks():
             full_response = ""
@@ -142,7 +137,7 @@ async def dynamic_chat_stream(
                 background_tasks.add_task(save_chat_to_mongodb, req.session_id, limited_history, req.chat_mode, user_email)
 
             except Exception as e:
-                yield f"⚠️ Error daga Gemini API: {str(e)}"
+                yield f"⚠️ Kuskure daga Gemini API: {str(e)}"
 
         return StreamingResponse(
             generate_chunks(), 
