@@ -27,12 +27,11 @@ async def chat_stream(
                 detail="GEMINI_API_KEY pipeline variable is unconfigured."
             )
 
-        # Initialize Client da Sabon Google GenAI SDK
+        # Amfani da sabon Google GenAI Client
         client = genai.Client(api_key=api_key)
 
         def generate_chunks():
             try:
-                # Amfani da sabon endpoint na Google GenAI
                 response = client.models.generate_content_stream(
                     model='gemini-2.5-flash',
                     contents=req.message
@@ -41,7 +40,6 @@ async def chat_stream(
                     if hasattr(chunk, "text") and chunk.text:
                         yield chunk.text
             except Exception as e:
-                # Idan aka samu matsala, a gwada gemini-2.0-flash
                 try:
                     response = client.models.generate_content_stream(
                         model='gemini-2.0-flash',
