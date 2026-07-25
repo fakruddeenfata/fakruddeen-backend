@@ -3,7 +3,7 @@ import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-import google.generativeai as genai
+from google import genai
 
 from core.database import get_chat_collection
 from core.security import get_current_user
@@ -27,24 +27,26 @@ async def chat_stream(
                 detail="GEMINI_API_KEY pipeline variable is unconfigured."
             )
 
-        # Configure API Key
-        genai.configure(api_key=api_key)
-
-        # Amfani da tsagwarar sunan model kawai (BA TARE DA "models/" PREFIX BA)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        # Initialize Client da Sabon Google GenAI SDK
+        client = genai.Client(api_key=api_key)
 
         def generate_chunks():
             try:
-                # Stream response daga Gemini
-                response = model.generate_content(req.message, stream=True)
+                # Amfani da sabon endpoint na Google GenAI
+                response = client.models.generate_content_stream(
+                    model='gemini-2.5-flash',
+                    contents=req.message
+                )
                 for chunk in response:
                     if hasattr(chunk, "text") and chunk.text:
                         yield chunk.text
             except Exception as e:
-                # Fallback zuwa gemini-1.5-pro idan aka samu matsala
+                # Idan aka samu matsala, a gwada gemini-2.0-flash
                 try:
-                    fallback_model = genai.GenerativeModel("gemini-1.5-pro")
-                    response = fallback_model.generate_content(req.message, stream=True)
+                    response = client.models.generate_content_stream(
+                        model='gemini-2.0-flash',
+                        contents=req.message
+                    )
                     for chunk in response:
                         if hasattr(chunk, "text") and chunk.text:
                             yield chunk.text
