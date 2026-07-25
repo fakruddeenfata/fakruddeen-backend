@@ -8,8 +8,8 @@ from fastapi.responses import StreamingResponse
 from google import genai
 from google.genai import types
 
-# Gyara imports
-from core.database import chat_collection, redis_client
+# Gyara imports daga database helper functions
+from core.database import get_chat_collection, get_redis_client
 from core.security import get_current_user
 from schemas.chat_schema import ChatRequest
 
@@ -21,6 +21,11 @@ def limit_context_history(history: list, max_turns: int = 20) -> list:
     return history[-(max_turns * 2):]
 
 async def save_chat_to_mongodb(session_id_str: str, history_list: list, mode: str, user_email: str):
+    chat_collection = get_chat_collection()
+    if chat_collection is None:
+        print("🚨 Critical DB Log Error: Database is not initialized.")
+        return
+
     try:
         title = f"Fata AI Ultra ({mode.capitalize()} Mode)"
         await chat_collection.update_one(
@@ -46,21 +51,27 @@ async def dynamic_chat_stream(
     current_user: dict = Depends(get_current_user)
 ):
     try:
-        user_email = current_user["sub"]
+        user_email = current_user.get("sub", "guest_user")
         api_key_str = os.environ.get("GEMINI_API_KEY")
         if not api_key_str:
-            raise HTTPException(status_code=500, detail="GEMINI_API_KEY environment line is missing.")
+            raise HTTPException(status_code=500, detail="GEMINI_API_KEY environment variable is missing.")
             
         client = genai.Client(api_key=api_key_str)
         
+        chat_collection = get_chat_collection()
+        redis_client = get_redis_client()
+
         cache_key = f"chat_session:{req.session_id}"
         cached_history = await redis_client.get(cache_key) if redis_client else None
         
         if cached_history:
             history = json.loads(cached_history)
         else:
-            existing_chat = await chat_collection.find_one({"_id": req.session_id})
-            history = existing_chat.get("messages", []) if existing_chat else []
+            history = []
+            if chat_collection is not None:
+                existing_chat = await chat_collection.find_one({"_id": req.session_id})
+                if existing_chat:
+                    history = existing_chat.get("messages", [])
 
         uploaded_file_ref = None
         clean_base64 = None
@@ -130,18 +141,22 @@ async def dynamic_chat_stream(
             for chunk in response_stream:
                 if chunk.text:
                     full_response += chunk.text
-                    yield json.dumps({"chunk": chunk.text, "type": "text"}) + "\n"
-            
+                    yield chunk.text  # Aika plain text kai tsaye zuwa frontend
+
             current_history.append({"role": "model", "content": full_response})
             limited_history = limit_context_history(current_history)
             
             if redis_client:
-                await redis_client.setex(f"chat_session:{session_id_str}", 3600, json.dumps(limited_history))
+                try:
+                    await redis_client.setex(f"chat_session:{session_id_str}", 3600, json.dumps(limited_history))
+                except Exception as e:
+                    print(f"⚠️ Redis write error: {str(e)}")
+
             background_tasks.add_task(save_chat_to_mongodb, session_id_str, limited_history, mode, email)
 
         return StreamingResponse(
             generate_chunks(req.session_id, history, req.chat_mode, user_email), 
-            media_type="application/json"
+            media_type="text/event-stream"
         )
         
     except Exception as e:
