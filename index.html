@@ -1,296 +1,182 @@
-<!DOCTYPE html>
-<html lang="ha">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fata AI Ultra Core - Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .chat-container::-webkit-scrollbar { width: 6px; }
-        .chat-container::-webkit-scrollbar-thumb { background-color: #374151; border-radius: 4px; }
-    </style>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+const API_BASE = "https://fata-ai-backend-9zxv.onrender.com"; // BABU trailing slash (/)
+let accessToken = "";
+let sessionId = "session_" + Math.random().toString(36).substring(7);
 
-    <!-- Header -->
-    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-cyan-500/20">
-                F
-            </div>
-            <div>
-                <h1 class="font-bold text-lg leading-tight">Fata AI Ultra Core</h1>
-                <p class="text-xs text-slate-400">Backend Status: <span id="status-badge" class="text-amber-400 font-semibold">Connecting...</span></p>
+// Gyararriyar Hanyar Kira Kai Tsaye ba tare da Fallback ba
+async def directFetch(path, options = {}) {
+    try {
+        const url = `${API_BASE}${path}`; // Misali: ...render.com/auth/guest
+        const res = await fetch(url, options);
+        return res;
+    } catch (err) {
+        throw new Error("Kuskure wajen haduwa da Backend API na Render.");
+    }
+}
+
+async function initGuestSession() {
+    const statusBadge = document.getElementById("status-badge");
+    const tokenDisplay = document.getElementById("token-display");
+    
+    statusBadge.innerText = "Connecting...";
+    statusBadge.className = "text-amber-400 font-semibold";
+
+    try {
+        const response = await directFetch("/auth/guest", {
+            method: "POST"
+        });
+
+        if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+
+        const data = await response.json();
+        accessToken = data.access_token;
+        tokenDisplay.value = accessToken;
+
+        statusBadge.innerText = "Online";
+        statusBadge.className = "text-emerald-400 font-semibold";
+    } catch (err) {
+        console.error("Auth Exception:", err);
+        statusBadge.innerText = "Error Connecting";
+        statusBadge.className = "text-red-400 font-semibold";
+        tokenDisplay.value = "Failed to authenticate";
+    }
+}
+
+async function sendChatMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById("chat-input");
+    const message = input.value.trim();
+    if (!message) return;
+
+    if (!accessToken) {
+        alert("Don Allah jira har tsarin ya haɗu (Session Token) kafin ka aika saƙo.");
+        return;
+    }
+
+    const messagesContainer = document.getElementById("chat-messages");
+
+    // User Message
+    messagesContainer.innerHTML += `
+        <div class="flex items-start space-x-3 justify-end">
+            <div class="bg-cyan-600 rounded-2xl rounded-tr-none p-3 max-w-[80%] text-sm text-white shadow-md">
+                ${escapeHtml(message)}
             </div>
         </div>
-        <div class="flex items-center space-x-2">
-            <button onclick="initGuestSession()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg transition">
-                <i class="fa-solid fa-rotate-right mr-1"></i> New Session
-            </button>
+    `;
+    input.value = "";
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // AI Message Holder
+    const aiMsgId = "ai-msg-" + Date.now();
+    messagesContainer.innerHTML += `
+        <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xs font-bold">AI</div>
+            <div id="${aiMsgId}" class="bg-slate-800/80 border border-slate-700/50 rounded-2xl rounded-tl-none p-3 max-w-[80%] text-sm text-slate-200">
+                <span class="animate-pulse text-slate-400">Tunanin amsa...</span>
+            </div>
         </div>
-    </header>
+    `;
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    <!-- Main Container -->
-    <div class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+    try {
+        const response = await directFetch("/chat/stream", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+                message: message,
+                session_id: sessionId,
+                chat_mode: "general"
+            })
+        });
 
-        <!-- Left Column: Controls & Image Generation -->
-        <div class="md:col-span-1 space-y-6">
-            
-            <!-- Auth Token Info -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
-                <h2 class="text-sm font-semibold text-slate-300 mb-2 flex items-center">
-                    <i class="fa-solid fa-key text-cyan-400 mr-2"></i> Session Token
-                </h2>
-                <input type="text" id="token-display" readonly value="Loading..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-400 font-mono focus:outline-none">
-            </div>
-
-            <!-- Image Generation Box -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-                <h2 class="text-sm font-bold text-slate-200 flex items-center">
-                    <i class="fa-solid fa-wand-magic-sparkles text-purple-400 mr-2"></i> Image Generation Engine
-                </h2>
-                <textarea id="image-prompt" rows="3" placeholder="Rubuta irin hoton da kake son AI ya tsara..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-purple-500 transition resize-none"></textarea>
-                
-                <button onclick="generateImage()" id="btn-gen-img" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium py-2.5 rounded-xl transition text-sm flex items-center justify-center space-x-2 shadow-lg shadow-purple-600/20">
-                    <span>Generate Image</span>
-                </button>
-
-                <div id="image-output" class="w-full h-48 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center overflow-hidden relative">
-                    <span class="text-xs text-slate-500">Hoton da aka kirkira zai bayyana a nan</span>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Right Column: AI Chat Stream -->
-        <div class="md:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-[600px] shadow-sm overflow-hidden">
-            
-            <!-- Chat Header -->
-            <div class="border-b border-slate-800 p-4 bg-slate-900/50 flex justify-between items-center">
-                <div class="flex items-center space-x-2">
-                    <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                    <h2 class="text-sm font-semibold text-slate-200">Interactive AI Chat Stream</h2>
-                </div>
-                <span class="text-xs text-slate-500">Gemini Powered</span>
-            </div>
-
-            <!-- Messages Area -->
-            <div id="chat-messages" class="chat-container flex-1 p-4 overflow-y-auto space-y-4">
-                <div class="flex items-start space-x-3">
-                    <div class="w-8 h-8 rounded-lg bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xs font-bold">AI</div>
-                    <div class="bg-slate-800/80 border border-slate-700/50 rounded-2xl rounded-tl-none p-3 max-w-[80%] text-sm text-slate-200">
-                        Barka da zuwa! Ni ne Fata AI. Yaya zan iya taimaka maka a yau?
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chat Input Box -->
-            <div class="p-4 border-t border-slate-800 bg-slate-900/50">
-                <form onsubmit="sendChatMessage(event)" class="flex space-x-2">
-                    <input type="text" id="chat-input" placeholder="Aika sako zuwa Fata AI..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 transition">
-                    <button type="submit" id="btn-send-chat" class="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2.5 rounded-xl font-medium text-sm transition flex items-center justify-center">
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
-                </form>
-            </div>
-
-        </div>
-
-    </div>
-
-    <script>
-        const API_BASE = "https://fata-ai-backend-9zxv.onrender.com";
-        let accessToken = "";
-        let sessionId = "session_" + Math.random().toString(36).substring(7);
-
-        async function fetchWithFallback(path, options = {}) {
-            const routesToTry = [
-                `${API_BASE}${path}`,
-                `${API_BASE}/api/v2${path}`
-            ];
-
-            let lastError;
-            for (const url of routesToTry) {
-                try {
-                    const res = await fetch(url, options);
-                    if (res.status !== 404) {
-                        return res;
-                    }
-                } catch (err) {
-                    lastError = err;
-                }
-            }
-            throw lastError || new Error("Kuskure wajen haduwa da Backend API.");
-        }
-
-        async function initGuestSession() {
-            const statusBadge = document.getElementById("status-badge");
-            const tokenDisplay = document.getElementById("token-display");
-            
-            statusBadge.innerText = "Connecting...";
-            statusBadge.className = "text-amber-400 font-semibold";
-
+        if (!response.ok) {
+            let errMsg = "Kuskure daga backend";
             try {
-                const response = await fetchWithFallback("/auth/guest", {
-                    method: "POST"
-                });
-
-                if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-
-                const data = await response.json();
-                accessToken = data.access_token;
-                tokenDisplay.value = accessToken;
-
-                statusBadge.innerText = "Online";
-                statusBadge.className = "text-emerald-400 font-semibold";
-            } catch (err) {
-                console.error("Auth Exception:", err);
-                statusBadge.innerText = "Error Connecting";
-                statusBadge.className = "text-red-400 font-semibold";
-                tokenDisplay.value = "Failed to authenticate";
-            }
+                const errJson = await response.json();
+                errMsg = errJson.detail || errMsg;
+            } catch (_) {}
+            throw new Error(errMsg);
         }
 
-        async function sendChatMessage(e) {
-            e.preventDefault();
-            const input = document.getElementById("chat-input");
-            const message = input.value.trim();
-            if (!message) return;
+        const aiHolder = document.getElementById(aiMsgId);
+        aiHolder.innerText = ""; 
 
-            if (!accessToken) {
-                alert("Don Allah jira har tsarin ya haɗu (Session Token) kafin ka aika saƙo.");
-                return;
-            }
+        // Reader Real-time Stream
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
 
-            const messagesContainer = document.getElementById("chat-messages");
-
-            // User Message
-            messagesContainer.innerHTML += `
-                <div class="flex items-start space-x-3 justify-end">
-                    <div class="bg-cyan-600 rounded-2xl rounded-tr-none p-3 max-w-[80%] text-sm text-white shadow-md">
-                        ${escapeHtml(message)}
-                    </div>
-                </div>
-            `;
-            input.value = "";
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value, { stream: true });
+            aiHolder.innerText += chunk;
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-            // AI Message Holder
-            const aiMsgId = "ai-msg-" + Date.now();
-            messagesContainer.innerHTML += `
-                <div class="flex items-start space-x-3">
-                    <div class="w-8 h-8 rounded-lg bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xs font-bold">AI</div>
-                    <div id="${aiMsgId}" class="bg-slate-800/80 border border-slate-700/50 rounded-2xl rounded-tl-none p-3 max-w-[80%] text-sm text-slate-200">
-                        <span class="animate-pulse text-slate-400">Tunanin amsa...</span>
-                    </div>
-                </div>
-            `;
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-            try {
-                const response = await fetchWithFallback("/chat/stream", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${accessToken}`
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        session_id: sessionId,
-                        chat_mode: "general"
-                    })
-                });
-
-                if (!response.ok) {
-                    let errMsg = "Kuskure daga backend";
-                    try {
-                        const errJson = await response.json();
-                        errMsg = errJson.detail || errMsg;
-                    } catch (_) {}
-                    throw new Error(errMsg);
-                }
-
-                const aiHolder = document.getElementById(aiMsgId);
-                aiHolder.innerText = ""; 
-
-                // Reader Real-time Stream
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    const chunk = decoder.decode(value, { stream: true });
-                    aiHolder.innerText += chunk;
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                }
-
-            } catch (err) {
-                console.error("Chat Error:", err);
-                document.getElementById(aiMsgId).innerHTML = `<span class="text-red-400">Kuskure: ${err.message}</span>`;
-            }
         }
 
-        async function generateImage() {
-            const prompt = document.getElementById("image-prompt").value.trim();
-            if (!prompt) {
-                alert("Don Allah rubuta bayanin hoton da kake so!");
-                return;
-            }
+    } catch (err) {
+        console.error("Chat Error:", err);
+        document.getElementById(aiMsgId).innerHTML = `<span class="text-red-400">Kuskure: ${err.message}</span>`;
+    }
+}
 
-            if (!accessToken) {
-                alert("Jira har saitin Guest Token ya kammala!");
-                return;
-            }
+async function generateImage() {
+    const prompt = document.getElementById("image-prompt").value.trim();
+    if (!prompt) {
+        alert("Don Allah rubuta bayanin hoton da kake so!");
+        return;
+    }
 
-            const btn = document.getElementById("btn-gen-img");
-            const output = document.getElementById("image-output");
+    if (!accessToken) {
+        alert("Jira har saitin Guest Token ya kammala!");
+        return;
+    }
 
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-2"></i> Generating...`;
-            output.innerHTML = `<span class="text-xs text-purple-400 animate-pulse">Hoton yana kan tsarawa...</span>`;
+    const btn = document.getElementById("btn-gen-img");
+    const output = document.getElementById("image-output");
 
-            try {
-                const response = await fetchWithFallback("/image/generate", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${accessToken}`
-                    },
-                    body: JSON.stringify({
-                        prompt: prompt,
-                        session_id: sessionId
-                    })
-                });
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-2"></i> Generating...`;
+    output.innerHTML = `<span class="text-xs text-purple-400 animate-pulse">Hoton yana kan tsarawa...</span>`;
 
-                const data = await response.json();
+    try {
+        const response = await directFetch("/image/generate", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+                prompt: prompt,
+                session_id: sessionId
+            })
+        });
 
-                if (!response.ok) throw new Error(data.detail || "Image generation failed");
+        const data = await response.json();
 
-                const imgSrc = data.image_data || data.image || data.b64_json;
-                if (imgSrc) {
-                    const src = imgSrc.startsWith('data:') ? imgSrc : `data:image/jpeg;base64,${imgSrc}`;
-                    output.innerHTML = `<img src="${src}" alt="Generated Image" class="w-full h-full object-cover rounded-xl">`;
-                } else {
-                    output.innerHTML = `<span class="text-xs text-slate-400 p-2 text-center">${JSON.stringify(data)}</span>`;
-                }
+        if (!response.ok) throw new Error(data.detail || "Image generation failed");
 
-            } catch (err) {
-                console.error("Image Error:", err);
-                output.innerHTML = `<span class="text-xs text-red-400 p-2 text-center">Kuskure: ${err.message}</span>`;
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<span>Generate Image</span>`;
-            }
+        const imgSrc = data.image_data || data.image || data.b64_json;
+        if (imgSrc) {
+            const src = imgSrc.startsWith('data:') ? imgSrc : `data:image/jpeg;base64,${imgSrc}`;
+            output.innerHTML = `<img src="${src}" alt="Generated Image" class="w-full h-full object-cover rounded-xl">`;
+        } else {
+            output.innerHTML = `<span class="text-xs text-slate-400 p-2 text-center">${JSON.stringify(data)}</span>`;
         }
 
-        function escapeHtml(text) {
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        }
+    } catch (err) {
+        console.error("Image Error:", err);
+        output.innerHTML = `<span class="text-xs text-red-400 p-2 text-center">Kuskure: ${err.message}</span>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Generate Image</span>`;
+    }
+}
 
-        window.onload = initGuestSession;
-    </script>
-</body>
-</html>
+function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+window.onload = initGuestSession;

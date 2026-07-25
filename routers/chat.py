@@ -27,21 +27,20 @@ async def chat_stream(
                 detail="GEMINI_API_KEY pipeline variable is unconfigured."
             )
 
-        # Configure Gemini API Key
+        # Configure API Key
         genai.configure(api_key=api_key)
 
-        # Standard model initialisation for google-generativeai
+        # Amfani da tsagwarar sunan model ba tare da prefix na v1beta ko models/ ba
         model = genai.GenerativeModel("gemini-1.5-flash")
 
-        async def generate_chunks():
+        def generate_chunks():
             try:
-                # Synchronous generator wrapper inside streaming route
+                # Synchronous stream iteration a cikin response generator
                 response = model.generate_content(req.message, stream=True)
                 for chunk in response:
                     if hasattr(chunk, "text") and chunk.text:
                         yield chunk.text
             except Exception as e:
-                # Catch specific Gemini API errors
                 yield f"⚠️ Kuskure daga Gemini API: {str(e)}"
 
         return StreamingResponse(generate_chunks(), media_type="text/plain")
