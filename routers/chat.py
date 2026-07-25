@@ -30,8 +30,8 @@ async def chat_stream(
         # Configure API Key
         genai.configure(api_key=api_key)
 
-        # Amfani da amintaccen sunan model tare da "models/" prefix
-        model = genai.GenerativeModel("models/gemini-2.5-flash")
+        # Amfani da tsagwarar sunan model kawai (BA TARE DA "models/" PREFIX BA)
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
         def generate_chunks():
             try:
@@ -41,9 +41,9 @@ async def chat_stream(
                     if hasattr(chunk, "text") and chunk.text:
                         yield chunk.text
             except Exception as e:
-                # Idan aka samu matsala da gemini-2.5-flash, a gwada gemini-1.5-flash daki-daki
+                # Fallback zuwa gemini-1.5-pro idan aka samu matsala
                 try:
-                    fallback_model = genai.GenerativeModel("models/gemini-1.5-flash")
+                    fallback_model = genai.GenerativeModel("gemini-1.5-pro")
                     response = fallback_model.generate_content(req.message, stream=True)
                     for chunk in response:
                         if hasattr(chunk, "text") and chunk.text:
