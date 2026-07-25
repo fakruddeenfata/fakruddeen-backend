@@ -1,9 +1,9 @@
-import json
 import base64
 import datetime
 import os
+import json
 import tempfile
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
 from google import genai
 from google.genai import types
@@ -22,7 +22,6 @@ def limit_context_history(history: list, max_turns: int = 20) -> list:
 async def save_chat_to_mongodb(session_id_str: str, history_list: list, mode: str, user_email: str):
     chat_collection = get_chat_collection()
     if chat_collection is None:
-        print("🚨 Critical DB Log Error: Database is not initialized.")
         return
 
     try:
@@ -52,9 +51,10 @@ async def dynamic_chat_stream(
     try:
         user_email = current_user.get("sub", "guest_user")
         api_key_str = os.environ.get("GEMINI_API_KEY")
+        
         if not api_key_str:
-            raise HTTPException(status_code=500, detail="GEMINI_API_KEY environment variable is missing.")
-            
+            raise HTTPException(status_code=500, detail="GEMINI_API_KEY variable is missing.")
+
         client = genai.Client(api_key=api_key_str)
         
         chat_collection = get_chat_collection()
@@ -91,7 +91,7 @@ async def dynamic_chat_stream(
         if req.message:
             history.append({"role": "user", "content": req.message})
         elif req.file_base64:
-            history.append({"role": "user", "content": f"[High-Capacity Payload Injected: {req.mime_type}]"})
+            history.append({"role": "user", "content": f"[Payload Injected: {req.mime_type}]"})
         
         gemini_contents = []
         for msg in limit_context_history(history):
@@ -105,14 +105,8 @@ async def dynamic_chat_stream(
             elif clean_base64:
                 gemini_contents[-1].parts.append(types.Part.from_bytes(data=base64.b64decode(clean_base64), mime_type=req.mime_type))
 
-        system_instruction = "You are Fata AI Ultra Core, the sovereign apex AI network built by the engineer Fakruddeen. Deliver absolute master-level analytical solutions."
+        system_instruction = "You are Fata AI Ultra Core, the apex AI network built by the engineer Fakruddeen."
         chosen_model = 'gemini-2.0-flash'
-        
-        # Correct tools dictionary format for google-genai SDK
-        active_tools = [
-            {"google_search": {}},
-            {"code_execution": {}}
-        ]
 
         if req.chat_mode == "thinking":
             chosen_model = 'gemini-2.0-flash-thinking-exp'
@@ -121,42 +115,38 @@ async def dynamic_chat_stream(
                 thinking_config=types.ThinkingConfig(thinking_budget=req.thinking_budget)
             )
         else:
-            if req.chat_mode == "notebook":
-                chosen_model = 'gemini-2.5-pro'
-                system_instruction += " Execute strict semantic analysis and extreme structural logic synthesis."
-            elif req.chat_mode == "voice":
-                system_instruction += " Conversational core responsive framework: output short, absolute lightning sentences."
-            
             config = types.GenerateContentConfig(
-                tools=active_tools,
                 system_instruction=system_instruction
             )
-        
-        response_stream = client.models.generate_content_stream(
-            model=chosen_model, contents=gemini_contents, config=config
-        )
 
-        async def generate_chunks(session_id_str: str, current_history: list, mode: str, email: str):
+        async def generate_chunks():
             full_response = ""
-            for chunk in response_stream:
-                if chunk.text:
-                    full_response += chunk.text
-                    yield chunk.text
+            try:
+                response_stream = client.models.generate_content_stream(
+                    model=chosen_model, contents=gemini_contents, config=config
+                )
+                for chunk in response_stream:
+                    if chunk.text:
+                        full_response += chunk.text
+                        yield chunk.text
 
-            current_history.append({"role": "model", "content": full_response})
-            limited_history = limit_context_history(current_history)
-            
-            if redis_client:
-                try:
-                    await redis_client.setex(f"chat_session:{session_id_str}", 3600, json.dumps(limited_history))
-                except Exception as e:
-                    print(f"⚠️ Redis write error: {str(e)}")
+                history.append({"role": "model", "content": full_response})
+                limited_history = limit_context_history(history)
+                
+                if redis_client:
+                    try:
+                        await redis_client.setex(f"chat_session:{req.session_id}", 3600, json.dumps(limited_history))
+                    except Exception as e:
+                        print(f"⚠️ Redis error: {str(e)}")
 
-            background_tasks.add_task(save_chat_to_mongodb, session_id_str, limited_history, mode, email)
+                background_tasks.add_task(save_chat_to_mongodb, req.session_id, limited_history, req.chat_mode, user_email)
+
+            except Exception as e:
+                yield f"⚠️ Error daga Gemini API: {str(e)}"
 
         return StreamingResponse(
-            generate_chunks(req.session_id, history, req.chat_mode, user_email), 
-            media_type="text/event-stream"
+            generate_chunks(), 
+            media_type="text/plain"
         )
         
     except Exception as e:

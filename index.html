@@ -104,7 +104,26 @@
         let accessToken = "";
         let sessionId = "session_" + Math.random().toString(36).substring(7);
 
-        // 1. Initialize Guest Session on Load
+        async function fetchWithFallback(path, options = {}) {
+            const routesToTry = [
+                `${API_BASE}${path}`,
+                `${API_BASE}/api/v2${path}`
+            ];
+
+            let lastError;
+            for (const url of routesToTry) {
+                try {
+                    const res = await fetch(url, options);
+                    if (res.status !== 404) {
+                        return res;
+                    }
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+            throw lastError || new Error("Kuskure wajen haduwa da Backend API.");
+        }
+
         async function initGuestSession() {
             const statusBadge = document.getElementById("status-badge");
             const tokenDisplay = document.getElementById("token-display");
@@ -113,11 +132,11 @@
             statusBadge.className = "text-amber-400 font-semibold";
 
             try {
-                const response = await fetch(`${API_BASE}/api/v2/auth/guest`, {
+                const response = await fetchWithFallback("/auth/guest", {
                     method: "POST"
                 });
 
-                if (!response.ok) throw new Error("Guest session initialization failed");
+                if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
 
                 const data = await response.json();
                 accessToken = data.access_token;
@@ -126,14 +145,13 @@
                 statusBadge.innerText = "Online";
                 statusBadge.className = "text-emerald-400 font-semibold";
             } catch (err) {
-                console.error(err);
+                console.error("Auth Exception:", err);
                 statusBadge.innerText = "Error Connecting";
                 statusBadge.className = "text-red-400 font-semibold";
                 tokenDisplay.value = "Failed to authenticate";
             }
         }
 
-        // 2. Chat Message Stream (Improved Error Handling & Chunk Reading)
         async function sendChatMessage(e) {
             e.preventDefault();
             const input = document.getElementById("chat-input");
@@ -147,7 +165,7 @@
 
             const messagesContainer = document.getElementById("chat-messages");
 
-            // Append User Message
+            // User Message
             messagesContainer.innerHTML += `
                 <div class="flex items-start space-x-3 justify-end">
                     <div class="bg-cyan-600 rounded-2xl rounded-tr-none p-3 max-w-[80%] text-sm text-white shadow-md">
@@ -158,7 +176,7 @@
             input.value = "";
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-            // Create AI Message Holder
+            // AI Message Holder
             const aiMsgId = "ai-msg-" + Date.now();
             messagesContainer.innerHTML += `
                 <div class="flex items-start space-x-3">
@@ -171,7 +189,7 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
             try {
-                const response = await fetch(`${API_BASE}/api/v2/chat/stream`, {
+                const response = await fetchWithFallback("/chat/stream", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -193,14 +211,17 @@
                     throw new Error(errMsg);
                 }
 
+                const aiHolder = document.getElementById(aiMsgId);
+                aiHolder.innerText = ""; 
+
+                // Reader Real-time Stream
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                const aiHolder = document.getElementById(aiMsgId);
-                aiHolder.innerText = "";
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
+                    
                     const chunk = decoder.decode(value, { stream: true });
                     aiHolder.innerText += chunk;
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -208,11 +229,10 @@
 
             } catch (err) {
                 console.error("Chat Error:", err);
-                document.getElementById(aiMsgId).innerHTML = `<span class="text-red-400 font-medium">Kuskure: ${err.message}</span>`;
+                document.getElementById(aiMsgId).innerHTML = `<span class="text-red-400">Kuskure: ${err.message}</span>`;
             }
         }
 
-        // 3. Generate Image Engine
         async function generateImage() {
             const prompt = document.getElementById("image-prompt").value.trim();
             if (!prompt) {
@@ -233,7 +253,7 @@
             output.innerHTML = `<span class="text-xs text-purple-400 animate-pulse">Hoton yana kan tsarawa...</span>`;
 
             try {
-                const response = await fetch(`${API_BASE}/api/v2/image/generate`, {
+                const response = await fetchWithFallback("/image/generate", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -249,16 +269,16 @@
 
                 if (!response.ok) throw new Error(data.detail || "Image generation failed");
 
-                if (data.image || data.b64_json || typeof data === 'string') {
-                    const imgSrc = data.image || data.b64_json || data;
-                    const src = imgSrc.startsWith('data:') ? imgSrc : `data:image/png;base64,${imgSrc}`;
+                const imgSrc = data.image_data || data.image || data.b64_json;
+                if (imgSrc) {
+                    const src = imgSrc.startsWith('data:') ? imgSrc : `data:image/jpeg;base64,${imgSrc}`;
                     output.innerHTML = `<img src="${src}" alt="Generated Image" class="w-full h-full object-cover rounded-xl">`;
                 } else {
                     output.innerHTML = `<span class="text-xs text-slate-400 p-2 text-center">${JSON.stringify(data)}</span>`;
                 }
 
             } catch (err) {
-                console.error(err);
+                console.error("Image Error:", err);
                 output.innerHTML = `<span class="text-xs text-red-400 p-2 text-center">Kuskure: ${err.message}</span>`;
             } finally {
                 btn.disabled = false;
@@ -270,7 +290,6 @@
             return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
-        // Start session on view load
         window.onload = initGuestSession;
     </script>
 </body>
