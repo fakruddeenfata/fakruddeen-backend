@@ -1,45 +1,45 @@
+import os
 import datetime
-import jwt
-from fastapi import Security, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from passlib.context import CryptContext
-from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-security_bearer = HTTPBearer()
+# Cryptographic engine variables
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "FATA_AI_ULTRA_SECURE_NODE_98231")
+ALGORITHM = "HS256"
+CryptContextRef = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def hash_password(password: str) -> str:
-    """Juya kalmar sirri zuwa facce ta yadda ba za a iya karantawa ba."""
-    return pwd_context.hash(password)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v2/auth/login", auto_error=False)
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Duba idan kalmar sirri ta yi daidai da wadda ke rumbun bayanai."""
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password, hashed_password):
+    return CryptContextRef.verify(plain_password, hashed_password)
 
-def create_access_token(data: dict, expires_delta: datetime.timedelta) -> str:
-    """Ƙirƙirar JWT Token na musamman don User."""
+def get_password_hash(password):
+    return CryptContextRef.hash(password)
+
+def create_access_token(data: dict, expires_delta: datetime.timedelta = None):
     to_encode = data.copy()
-    expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
-    to_encode.update({"exp": expire.timestamp()})
-    return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    if expires_delta:
+        expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
+    else:
+        expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=60)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security_bearer)) -> dict:
-    """
-    Dependency da ke duba Token na kowane mai neman amfani da tsarin.
-    Idan babu token ko token ɗin ya mutu, zai kore shi ta atomatik.
-    """
-    token = credentials.credentials
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials token layer.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    if not token:
+        raise credentials_exception
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, 
-                detail="Tantancewa ta gaza: Ba a sami bayanan asusu a cikin token ba."
-            )
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
         return payload
-    except jwt.PyJWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail="Tantancewa ta gaza: Token ɗinku ba daidai ba ne ko ya mutu."
-        )
+    except JWTError:
+        raise credentials_exception
