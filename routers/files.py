@@ -3,7 +3,6 @@ import tempfile
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from google import genai
 
-# Gyara import
 from core.security import get_current_user
 
 router = APIRouter(prefix="/files", tags=["Multimodal Media Upload Pipeline"])

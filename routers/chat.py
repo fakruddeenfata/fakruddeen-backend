@@ -8,7 +8,6 @@ from fastapi.responses import StreamingResponse
 from google import genai
 from google.genai import types
 
-# Gyara imports daga database helper functions
 from core.database import get_chat_collection, get_redis_client
 from core.security import get_current_user
 from schemas.chat_schema import ChatRequest
@@ -109,9 +108,10 @@ async def dynamic_chat_stream(
         system_instruction = "You are Fata AI Ultra Core, the sovereign apex AI network built by the engineer Fakruddeen. Deliver absolute master-level analytical solutions."
         chosen_model = 'gemini-2.0-flash'
         
+        # Correct tools dictionary format for google-genai SDK
         active_tools = [
-            types.Tool(google_search=types.GoogleSearch()),
-            types.Tool(code_execution=types.CodeExecution())
+            {"google_search": {}},
+            {"code_execution": {}}
         ]
 
         if req.chat_mode == "thinking":
@@ -141,7 +141,7 @@ async def dynamic_chat_stream(
             for chunk in response_stream:
                 if chunk.text:
                     full_response += chunk.text
-                    yield chunk.text  # Aika plain text kai tsaye zuwa frontend
+                    yield chunk.text
 
             current_history.append({"role": "model", "content": full_response})
             limited_history = limit_context_history(current_history)

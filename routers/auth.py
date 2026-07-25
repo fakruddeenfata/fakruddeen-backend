@@ -4,12 +4,10 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
 from jose import jwt
 
-# Gyara imports don cire app.
 from core.security import create_access_token, get_password_hash, verify_password
 
 router = APIRouter(prefix="/auth", tags=["Authentication System"])
 
-# Pydantic Schemas for validation
 class GuestResponse(BaseModel):
     access_token: str
     token_type: str
@@ -23,7 +21,6 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
-# 1. Guest Session Creation
 @router.post("/guest", response_model=GuestResponse, status_code=status.HTTP_201_CREATED)
 async def create_guest_session():
     try:
@@ -47,7 +44,6 @@ async def create_guest_session():
             detail=f"Failed to allocate guest context token: {str(e)}"
         )
 
-# 2. Standard User Registration
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(user_data: UserRegister):
     return {"message": "Registration engine blueprint ready.", "email": user_data.email}

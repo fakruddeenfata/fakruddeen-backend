@@ -7,8 +7,7 @@ from pydantic import BaseModel
 from google import genai
 from google.genai import types
 
-# Gyara imports
-from core.database import chat_collection
+from core.database import get_chat_collection
 from core.security import get_current_user
 
 router = APIRouter(prefix="/image", tags=["AI Image Generation Engine"])
@@ -18,6 +17,11 @@ class ImageGenerationRequest(BaseModel):
     session_id: str  
 
 async def log_image_to_mongodb(session_id_str: str, history_list: list, user_email: str):
+    chat_collection = get_chat_collection()
+    if chat_collection is None:
+        print("🚨 Image DB Log Failure: Chat collection is not initialized.")
+        return
+
     try:
         await chat_collection.update_one(
             {"_id": session_id_str},
@@ -42,7 +46,7 @@ async def generate_creative_image(
     current_user: dict = Depends(get_current_user)
 ):
     try:
-        user_email = current_user["sub"]
+        user_email = current_user.get("sub", "guest_user")
         
         api_key_str = os.environ.get("GEMINI_API_KEY")
         if not api_key_str:
@@ -64,12 +68,17 @@ async def generate_creative_image(
             )
         )
         
+        chat_collection = get_chat_collection()
+        
         for generated_image in result.generated_images:
             base64_image = base64.b64encode(generated_image.image.image_bytes).decode("utf-8")
             full_image_uri = f"data:image/jpeg;base64,{base64_image}"
             
-            existing_chat = await chat_collection.find_one({"_id": req.session_id})
-            history = existing_chat.get("messages", []) if existing_chat else []
+            history = []
+            if chat_collection is not None:
+                existing_chat = await chat_collection.find_one({"_id": req.session_id})
+                if existing_chat:
+                    history = existing_chat.get("messages", [])
             
             history.append({"role": "user", "content": f"Kera mini hoton: {req.prompt}"})
             history.append({"role": "model", "content": "[Generated Image Asset UI Ready]", "image_url": full_image_uri})
