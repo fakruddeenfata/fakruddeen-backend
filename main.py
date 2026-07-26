@@ -10,12 +10,18 @@ from routers import auth, chat, image, files, live
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("⚡ Starting Fata AI Core Engine...")
-    await connect_to_mongo()
-    print("🚀 Connected to MongoDB cluster successfully.")
+    try:
+        await connect_to_mongo()
+        print("🚀 Connected to MongoDB cluster successfully.")
+    except Exception as e:
+        print(f"🚨 Database connection error: {str(e)}")
     yield
     print("🛑 Shutting down Fata AI Core Engine...")
-    await close_mongo_connection()
-    print("💤 Database connections closed safely.")
+    try:
+        await close_mongo_connection()
+        print("💤 Database connections closed safely.")
+    except Exception as e:
+        print(f"🚨 Database shutdown error: {str(e)}")
 
 # Initialize FastAPI
 app = FastAPI(
@@ -31,7 +37,7 @@ app = FastAPI(
 # CORS Security Layer
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Za ka iya ƙayyade origins a production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,8 +55,12 @@ async def root_health_check():
     }
 
 # Route Integrations
-app.include_router(auth.router, prefix="/api/v2")
-app.include_router(chat.router, prefix="/api/v2")
-app.include_router(image.router, prefix="/api/v2")
-app.include_router(files.router, prefix="/api/v2")
-app.include_router(live.router, prefix="/api/v2")
+try:
+    app.include_router(auth.router, prefix="/api/v2")
+    app.include_router(chat.router, prefix="/api/v2")
+    app.include_router(image.router, prefix="/api/v2")
+    app.include_router(files.router, prefix="/api/v2")
+    app.include_router(live.router, prefix="/api/v2")
+    print("✅ Routers loaded successfully.")
+except Exception as e:
+    print(f"🚨 Router integration error: {str(e)}")

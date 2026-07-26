@@ -1,6 +1,6 @@
 import os
 import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from google import genai
@@ -14,9 +14,44 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str
 
+async def save_conversation(session_id: str, user_email: str, message: str, response: str):
+    """
+    Adana tattaunawa a MongoDB tare da history.
+    """
+    chat_collection = get_chat_collection()
+    if chat_collection is None:
+        print("🚨 DB not initialized for conversation saving.")
+        return
+    
+    try:
+        history = []
+        existing_chat = await chat_collection.find_one({"_id": session_id})
+        if existing_chat:
+            history = existing_chat.get("messages", [])
+        
+        history.append({"role": "user", "content": message})
+        history.append({"role": "model", "content": response})
+        
+        await chat_collection.update_one(
+            {"_id": session_id},
+            {
+                "$set": {
+                    "user_email": user_email,
+                    "messages": history,
+                    "chat_mode": "standard",
+                    "title": "AI Chat Session",
+                    "updated_at": datetime.datetime.now(datetime.timezone.utc)
+                }
+            },
+            upsert=True
+        )
+    except Exception as e:
+        print(f"🚨 Conversation save error: {str(e)}")
+
 @router.post("/stream")
 async def chat_stream(
     req: ChatRequest,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user)
 ):
     try:
@@ -27,8 +62,8 @@ async def chat_stream(
                 detail="GEMINI_API_KEY pipeline variable is unconfigured."
             )
 
-        # Amfani da sabon Google GenAI Client
         client = genai.Client(api_key=api_key)
+        user_email = current_user.get("sub", "guest_user")
 
         def generate_chunks():
             try:
@@ -38,8 +73,17 @@ async def chat_stream(
                 )
                 for chunk in response:
                     if hasattr(chunk, "text") and chunk.text:
+                        # Adana tattaunawa a background
+                        background_tasks.add_task(
+                            save_conversation,
+                            req.session_id,
+                            user_email,
+                            req.message,
+                            chunk.text
+                        )
                         yield chunk.text
             except Exception as e:
+                print(f"⚠️ Primary Gemini error: {str(e)}")
                 try:
                     response = client.models.generate_content_stream(
                         model='gemini-2.0-flash',
@@ -47,11 +91,21 @@ async def chat_stream(
                     )
                     for chunk in response:
                         if hasattr(chunk, "text") and chunk.text:
+                            background_tasks.add_task(
+                                save_conversation,
+                                req.session_id,
+                                user_email,
+                                req.message,
+                                chunk.text
+                            )
                             yield chunk.text
                 except Exception as fallback_err:
-                    yield f"⚠️ Kuskure daga Gemini API: {str(fallback_err)}"
+                    yield f"⚠️ Gemini fallback error: {str(fallback_err)}"
 
         return StreamingResponse(generate_chunks(), media_type="text/plain")
 
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"🚨 Unexpected chat error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Chat engine internal failure.")

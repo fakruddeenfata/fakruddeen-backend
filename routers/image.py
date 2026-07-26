@@ -55,25 +55,42 @@ async def generate_creative_image(
                 detail="GEMINI_API_KEY pipeline variable is unconfigured."
             )
             
-        # Amfani da sabon Client daga google-genai
         client = genai.Client(api_key=api_key_str)
 
-        # Kirar hoton Imagen 3 ta amfani da sabon SDK
-        result = client.models.generate_images(
-            model='imagen-3.0-generate-002',
-            prompt=req.prompt,
-            config=types.GenerateImagesConfig(
-                number_of_images=1,
-                output_mime_type="image/jpeg",
-                aspect_ratio="1:1"
+        try:
+            # Primary attempt: Imagen 3
+            result = client.models.generate_images(
+                model='imagen-3.0-generate-002',
+                prompt=req.prompt,
+                config=types.GenerateImagesConfig(
+                    number_of_images=1,
+                    output_mime_type="image/jpeg",
+                    aspect_ratio="1:1"
+                )
             )
-        )
+        except Exception as primary_err:
+            print(f"⚠️ Primary Imagen error: {str(primary_err)}")
+            try:
+                # Fallback attempt: older Imagen model
+                result = client.models.generate_images(
+                    model='imagen-2.0-generate-001',
+                    prompt=req.prompt,
+                    config=types.GenerateImagesConfig(
+                        number_of_images=1,
+                        output_mime_type="image/jpeg",
+                        aspect_ratio="1:1"
+                    )
+                )
+            except Exception as fallback_err:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Image generation failed: {str(fallback_err)}"
+                )
         
         chat_collection = get_chat_collection()
         
         if result.generated_images:
             for generated_image in result.generated_images:
-                # Ciro hoton daga bytes dinsa
                 base64_image = base64.b64encode(generated_image.image.image_bytes).decode("utf-8")
                 full_image_uri = f"data:image/jpeg;base64,{base64_image}"
                 
@@ -84,7 +101,11 @@ async def generate_creative_image(
                         history = existing_chat.get("messages", [])
                 
                 history.append({"role": "user", "content": f"Kera mini hoton: {req.prompt}"})
-                history.append({"role": "model", "content": "[Generated Image Asset UI Ready]", "image_url": full_image_uri})
+                history.append({
+                    "role": "model",
+                    "content": "[Generated Image Asset UI Ready]",
+                    "image_url": full_image_uri
+                })
                 
                 background_tasks.add_task(log_image_to_mongodb, req.session_id, history, user_email)
                 
@@ -95,7 +116,13 @@ async def generate_creative_image(
                     "image_data": full_image_uri
                 }
             
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Image generation engine returned empty grid.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Image generation engine returned empty grid."
+        )
         
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        print(f"🚨 Unexpected image error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Image engine internal failure.")

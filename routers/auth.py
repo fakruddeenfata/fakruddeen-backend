@@ -2,8 +2,8 @@ import datetime
 import uuid
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
-from jose import jwt
 
+from core.database import get_chat_collection
 from core.security import create_access_token, get_password_hash, verify_password
 
 router = APIRouter(prefix="/auth", tags=["Authentication System"])
@@ -46,4 +46,36 @@ async def create_guest_session():
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(user_data: UserRegister):
-    return {"message": "Registration engine blueprint ready.", "email": user_data.email}
+    chat_collection = get_chat_collection()
+    if chat_collection is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    existing_user = await chat_collection.find_one({"email": user_data.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User already exists")
+    
+    hashed_pw = get_password_hash(user_data.password)
+    await chat_collection.insert_one({
+        "email": user_data.email,
+        "hashed_password": hashed_pw,
+        "created_at": datetime.datetime.now(datetime.timezone.utc),
+        "role": "user"
+    })
+    return {"message": "User registered successfully", "email": user_data.email}
+
+@router.post("/login")
+async def login_user(user_data: UserLogin):
+    chat_collection = get_chat_collection()
+    if chat_collection is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    user = await chat_collection.find_one({"email": user_data.email})
+    if not user or not verify_password(user_data.password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    access_token_expires = datetime.timedelta(minutes=60)
+    access_token = create_access_token(
+        data={"sub": user_data.email, "role": user.get("role", "user")},
+        expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}

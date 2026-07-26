@@ -1,8 +1,43 @@
 import os
-import asyncio
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+import datetime
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from core.database import get_chat_collection
+from core.security import get_current_user
 
 router = APIRouter(prefix="/live", tags=["Real-time Gemini Audio Engine"])
+
+async def log_live_audio(session_id: str, user_email: str, event: str):
+    """
+    Adana logs na live audio socket a MongoDB.
+    """
+    chat_collection = get_chat_collection()
+    if chat_collection is None:
+        print("🚨 Live Audio DB Log Failure: Chat collection is not initialized.")
+        return
+    
+    try:
+        history = []
+        existing_chat = await chat_collection.find_one({"_id": session_id})
+        if existing_chat:
+            history = existing_chat.get("messages", [])
+        
+        history.append({"role": "system", "content": event})
+        
+        await chat_collection.update_one(
+            {"_id": session_id},
+            {
+                "$set": {
+                    "user_email": user_email,
+                    "messages": history,
+                    "chat_mode": "live_audio",
+                    "title": "AI Live Audio Session",
+                    "updated_at": datetime.datetime.now(datetime.timezone.utc)
+                }
+            },
+            upsert=True
+        )
+    except Exception as e:
+        print(f"🚨 Live Audio DB Log Thread Failure: {str(e)}")
 
 @router.websocket("/ws")
 async def live_audio_socket(websocket: WebSocket):
@@ -16,12 +51,19 @@ async def live_audio_socket(websocket: WebSocket):
     try:
         # Placeholder stream check for audio connection
         await websocket.send_text("Live audio stream engine connected successfully.")
+        
+        # Adana log na fara session
+        await log_live_audio("live_session", "guest_user", "Live audio session started.")
+        
         while True:
             data = await websocket.receive_bytes()
             # Process incoming bytes if needed
+            await log_live_audio("live_session", "guest_user", f"Received {len(data)} bytes of audio data.")
             
     except WebSocketDisconnect:
         print("⚡ Live Socket Client Disconnected gracefully.")
+        await log_live_audio("live_session", "guest_user", "Live audio session disconnected.")
     except Exception as e:
         print(f"🚨 Live Audio Pipeline Error: {str(e)}")
+        await log_live_audio("live_session", "guest_user", f"Error: {str(e)}")
         await websocket.close(code=1011, reason=str(e))
