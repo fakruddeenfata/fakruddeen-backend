@@ -67,6 +67,7 @@ async def chat_stream(
 
         def generate_chunks():
             full_response = ""
+            # Try 1: Gemini 2.5 Flash
             try:
                 response = client.models.generate_content_stream(
                     model='gemini-2.5-flash',
@@ -77,7 +78,8 @@ async def chat_stream(
                         full_response += chunk.text
                         yield chunk.text
             except Exception as e:
-                print(f"⚠️ Primary Gemini error: {str(e)}")
+                print(f"⚠️ Primary Gemini 2.5 error: {str(e)}")
+                # Try 2: Gemini 2.0 Flash
                 try:
                     response = client.models.generate_content_stream(
                         model='gemini-2.0-flash',
@@ -87,13 +89,25 @@ async def chat_stream(
                         if hasattr(chunk, "text") and chunk.text:
                             full_response += chunk.text
                             yield chunk.text
-                except Exception as fallback_err:
-                    err_msg = f"⚠️ Gemini fallback error: {str(fallback_err)}"
-                    full_response += err_msg
-                    yield err_msg
+                except Exception as fallback_20_err:
+                    print(f"⚠️ Secondary Gemini 2.0 error: {str(fallback_20_err)}")
+                    # Try 3: Gemini 1.5 Flash (Mafi amintaccen free limit)
+                    try:
+                        response = client.models.generate_content_stream(
+                            model='gemini-1.5-flash',
+                            contents=req.message
+                        )
+                        for chunk in response:
+                            if hasattr(chunk, "text") and chunk.text:
+                                full_response += chunk.text
+                                yield chunk.text
+                    except Exception as fallback_15_err:
+                        err_msg = f"⚠️ Gemini Quota Exceeded (429): Google free tier limit reached. Exception: {str(fallback_15_err)}"
+                        full_response += err_msg
+                        yield err_msg
             
-            # Adana cikakkiyar amsar sau guda ɗaya bayan an gama streaming
-            if full_response:
+            # Adana cikakkiyar amsar a background
+            if full_response and not full_response.startswith("⚠️ Gemini Quota Exceeded"):
                 background_tasks.add_task(
                     save_conversation,
                     req.session_id,
