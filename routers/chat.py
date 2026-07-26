@@ -67,47 +67,38 @@ async def chat_stream(
 
         def generate_chunks():
             full_response = ""
-            # Try 1: Gemini 2.5 Flash
-            try:
-                response = client.models.generate_content_stream(
-                    model='gemini-2.5-flash',
-                    contents=req.message
-                )
-                for chunk in response:
-                    if hasattr(chunk, "text") and chunk.text:
-                        full_response += chunk.text
-                        yield chunk.text
-            except Exception as e:
-                print(f"⚠️ Primary Gemini 2.5 error: {str(e)}")
-                # Try 2: Gemini 2.0 Flash
+            
+            # Jerin ingantattun models a sabon Google SDK
+            models_to_try = [
+                'gemini-2.5-flash',
+                'gemini-2.0-flash',
+                'gemini-1.5-flash-latest'
+            ]
+            
+            success = False
+            for model_name in models_to_try:
                 try:
                     response = client.models.generate_content_stream(
-                        model='gemini-2.0-flash',
+                        model=model_name,
                         contents=req.message
                     )
                     for chunk in response:
                         if hasattr(chunk, "text") and chunk.text:
                             full_response += chunk.text
                             yield chunk.text
-                except Exception as fallback_20_err:
-                    print(f"⚠️ Secondary Gemini 2.0 error: {str(fallback_20_err)}")
-                    # Try 3: Gemini 1.5 Flash (Mafi amintaccen free limit)
-                    try:
-                        response = client.models.generate_content_stream(
-                            model='gemini-1.5-flash',
-                            contents=req.message
-                        )
-                        for chunk in response:
-                            if hasattr(chunk, "text") and chunk.text:
-                                full_response += chunk.text
-                                yield chunk.text
-                    except Exception as fallback_15_err:
-                        err_msg = f"⚠️ Gemini Quota Exceeded (429): Google free tier limit reached. Exception: {str(fallback_15_err)}"
-                        full_response += err_msg
-                        yield err_msg
+                    success = True
+                    break  # Idan ya yi aiki, kada ka sake kiran wani model din
+                except Exception as model_err:
+                    print(f"⚠️ Failed attempt with model {model_name}: {str(model_err)}")
+                    continue
             
-            # Adana cikakkiyar amsar a background
-            if full_response and not full_response.startswith("⚠️ Gemini Quota Exceeded"):
+            if not success:
+                err_msg = "⚠️ An samu cinkoso a tsarin Google API (Quota/Rate Limit). Tabbatar ka jikata dakika 30 kafin sake aikawa, ko ka sauya GEMINI_API_KEY a Render."
+                full_response += err_msg
+                yield err_msg
+
+            # Adana tattaunawa kadai idan aka samu amsa mai kyau
+            if full_response and success:
                 background_tasks.add_task(
                     save_conversation,
                     req.session_id,
