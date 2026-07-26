@@ -30,6 +30,10 @@ async def close_mongo_connection():
     if redis_client:
         await redis_client.close()
 
+def get_database():
+    global db
+    return db
+
 def get_chat_collection():
     global chat_collection, db
     if chat_collection is not None:
