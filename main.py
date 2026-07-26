@@ -37,7 +37,7 @@ app = FastAPI(
 # CORS Security Layer
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Za ka iya ƙayyade origins a production
+    allow_origins=["*"],  # Zaka iya kayyade wannan a Production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
