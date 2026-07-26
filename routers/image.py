@@ -71,9 +71,9 @@ async def generate_creative_image(
         except Exception as primary_err:
             print(f"⚠️ Primary Imagen error: {str(primary_err)}")
             try:
-                # Fallback attempt: older Imagen model
+                # Fallback attempt
                 result = client.models.generate_images(
-                    model='imagen-2.0-generate-001',
+                    model='imagen-3.0-fast-generate-001',
                     prompt=req.prompt,
                     config=types.GenerateImagesConfig(
                         number_of_images=1,

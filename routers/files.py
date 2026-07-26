@@ -1,6 +1,6 @@
 import os
 import datetime
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, BackgroundTasks
 from google import genai
 
 from core.database import get_chat_collection
@@ -50,6 +50,7 @@ async def log_file_upload(session_id: str, user_email: str, file_info: dict):
 @router.post("/upload")
 async def upload_file_to_gemini(
     file: UploadFile = File(...),
+    session_id: str = Form("default_session"),
     background_tasks: BackgroundTasks = None,
     current_user: dict = Depends(get_current_user)
 ):
@@ -66,11 +67,9 @@ async def upload_file_to_gemini(
         with open(temp_file_path, "wb") as f:
             f.write(await file.read())
 
-        # Amfani da sabon Client daga google-genai
         client = genai.Client(api_key=api_key)
 
         try:
-            # Upload zuwa Gemini Files API
             uploaded_file = client.files.upload(file=temp_file_path)
         except Exception as primary_err:
             print(f"⚠️ Primary Gemini upload error: {str(primary_err)}")
@@ -79,20 +78,19 @@ async def upload_file_to_gemini(
                 detail=f"File upload failed: {str(primary_err)}"
             )
 
-        # Goge temporary file din bayan an gama upload
+        # Goge temporary file
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
 
         file_info = {
-            "file_name": uploaded_file.name,
+            "file_name": file.filename,
             "uri": uploaded_file.uri,
             "mime_type": uploaded_file.mime_type
         }
 
-        # Adana upload a MongoDB
         user_email = current_user.get("sub", "guest_user")
         if background_tasks:
-            background_tasks.add_task(log_file_upload, file.filename, user_email, file_info)
+            background_tasks.add_task(log_file_upload, session_id, user_email, file_info)
 
         return {
             "status": "success",
